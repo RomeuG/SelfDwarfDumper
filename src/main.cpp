@@ -30,6 +30,9 @@ int main(void)
         exit(-1);
     }
 
+    Dwarf_Cmdline_Options DwarfOptions = { 1 };
+    dwarf_record_cmdline_options(DwarfOptions);
+
     fprintf(stdout, "DwarfDebug: %p\nDwarfError: %p\n", DwarfDebug, DwarfError);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
