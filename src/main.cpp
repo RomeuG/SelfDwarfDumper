@@ -30,7 +30,7 @@ void SectionInfo(Dwarf_Debug* DwarfDebug, const char* SectionName)
                                 &IsMarkedSHFCompressed, &CompressedLength,
                                 &UncompressedLength, &DwarfError);
 
-    fprintf(stdout, "ActualSectionName = %s\nIsMarkedCompressed = %d\n"
+    fprintf(stdout, "SectionInfo()\nActualSectionName = %s\nIsMarkedCompressed = %d\n"
                     "IsMarkedZLibCompressed = %d\nIsMarkedSHFCompressed = %d\n"
                     "CompressedLength = %d\nUncompressedLength = %d\n\n",
             ActualSectionName,
@@ -72,6 +72,10 @@ void SectionGroupMapping(Dwarf_Debug* DwarfDebug)
     }
 
     fprintf(stdout, "\n");
+
+    free(GroupNumbers);
+    free(SectionNumbers);
+    free(SectionNames);
 }
 
 int main(void)
