@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+static Dwarf_Unsigned GlobalMapEntryCount = 0;
+
 // NOTE: only handled if Dwarf_Error == NULL in Dwarf functions
 static void DwarfErrorHandler(Dwarf_Error Error, Dwarf_Ptr ErrArg)
 {
@@ -13,7 +15,7 @@ static void DwarfErrorHandler(Dwarf_Error Error, Dwarf_Ptr ErrArg)
     exit(-1);
 }
 
-void DebugInfoSectionInfo(Dwarf_Debug* DwarfDebug)
+void SectionInfo(Dwarf_Debug* DwarfDebug, const char* SectionName)
 {
     const char* ActualSectionName = 0;
     Dwarf_Small IsMarkedCompressed = 0;
@@ -23,17 +25,53 @@ void DebugInfoSectionInfo(Dwarf_Debug* DwarfDebug)
     Dwarf_Unsigned UncompressedLength = 0;
     Dwarf_Error DwarfError;
 
-    dwarf_get_real_section_name(*DwarfDebug, ".debug_info", &ActualSectionName,
+    dwarf_get_real_section_name(*DwarfDebug, SectionName, &ActualSectionName,
                                 &IsMarkedCompressed, &IsMarkedZLibCompressed,
                                 &IsMarkedSHFCompressed, &CompressedLength,
                                 &UncompressedLength, &DwarfError);
 
     fprintf(stdout, "ActualSectionName = %s\nIsMarkedCompressed = %d\n"
                     "IsMarkedZLibCompressed = %d\nIsMarkedSHFCompressed = %d\n"
-                    "CompressedLength = %d\nUncompressedLength = %d\n",
+                    "CompressedLength = %d\nUncompressedLength = %d\n\n",
             ActualSectionName,
             IsMarkedCompressed, IsMarkedZLibCompressed, IsMarkedSHFCompressed,
             CompressedLength, UncompressedLength);
+}
+
+void SectionGroupSizes(Dwarf_Debug* DwarfDebug)
+{
+    Dwarf_Unsigned SectionCount = 0;
+    Dwarf_Unsigned GroupCount = 0;
+    Dwarf_Unsigned SelectedGroup = 0;
+    Dwarf_Unsigned MapEntryCount = 0;
+    Dwarf_Error DwarfError;
+
+    dwarf_sec_group_sizes(*DwarfDebug, &SectionCount, &GroupCount,
+                          &SelectedGroup, &MapEntryCount, &DwarfError);
+
+    GlobalMapEntryCount = MapEntryCount;
+
+    fprintf(stdout, "SectionGroupSizes()\nSectionCount = %d\nGroupCount = %d\n"
+                    "SelectedGroup = %d\nMapEntryCount = %d\n\n",
+            SectionCount, GroupCount, SelectedGroup, MapEntryCount);
+}
+
+void SectionGroupMapping(Dwarf_Debug* DwarfDebug)
+{
+    Dwarf_Unsigned* GroupNumbers = (Dwarf_Unsigned*)calloc(GlobalMapEntryCount, sizeof(Dwarf_Unsigned));
+    Dwarf_Unsigned* SectionNumbers = (Dwarf_Unsigned*)calloc(GlobalMapEntryCount, sizeof(Dwarf_Unsigned));
+    const char** SectionNames = (const char**)calloc(GlobalMapEntryCount, sizeof(char*));
+    Dwarf_Error DwarfError;
+
+    dwarf_sec_group_map(*DwarfDebug, GlobalMapEntryCount, GroupNumbers, SectionNumbers, SectionNames, &DwarfError);
+
+    fprintf(stdout, "SectionGroupMapping()\nSection Names:\n");
+
+    for (int i = 0; i < GlobalMapEntryCount; i += 2) {
+        fprintf(stdout, "%s, %s\n", SectionNames[i], SectionNames[i + 1]);
+    }
+
+    fprintf(stdout, "\n");
 }
 
 int main(void)
@@ -56,9 +94,11 @@ int main(void)
     Dwarf_Cmdline_Options DwarfOptions = { 1 };
     dwarf_record_cmdline_options(DwarfOptions);
 
-    fprintf(stdout, "DwarfDebug: %p\nDwarfError: %p\n", DwarfDebug, DwarfError);
+    fprintf(stdout, "DwarfDebug: %p\nDwarfError: %p\n\n", DwarfDebug, DwarfError);
 
-    DebugInfoSectionInfo(&DwarfDebug);
+    SectionInfo(&DwarfDebug, ".debug_info");
+    SectionGroupSizes(&DwarfDebug);
+    SectionGroupMapping(&DwarfDebug);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
     if (DwarfResult != DW_DLV_OK) {
