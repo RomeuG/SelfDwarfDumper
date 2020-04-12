@@ -67,8 +67,8 @@ void SectionGroupMapping(Dwarf_Debug* DwarfDebug)
 
     fprintf(stdout, "SectionGroupMapping()\nSection Names:\n");
 
-    for (int i = 0; i < GlobalMapEntryCount; i += 2) {
-        fprintf(stdout, "%s, %s\n", SectionNames[i], SectionNames[i + 1]);
+    for (int i = 0; i < GlobalMapEntryCount; i++) {
+        fprintf(stdout, "%s\n", SectionNames[i]);
     }
 
     fprintf(stdout, "\n");
