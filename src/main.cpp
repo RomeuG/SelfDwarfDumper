@@ -78,6 +78,42 @@ void SectionGroupMapping(Dwarf_Debug* DwarfDebug)
     free(SectionNames);
 }
 
+void SectionSizes(Dwarf_Debug* DwarfDebug)
+{
+    Dwarf_Unsigned InfoSize = 0;
+    Dwarf_Unsigned AbbrevSize = 0;
+    Dwarf_Unsigned LineSize = 0;
+    Dwarf_Unsigned LocSize = 0;
+    Dwarf_Unsigned ArangesSize = 0;
+    Dwarf_Unsigned MacInfoSize = 0;
+    Dwarf_Unsigned PubNamesSize = 0;
+    Dwarf_Unsigned StrSize = 0;
+    Dwarf_Unsigned FrameSize = 0;
+    Dwarf_Unsigned RangesSize = 0;
+    Dwarf_Unsigned PubTypesSize = 0;
+
+    dwarf_get_section_max_offsets(*DwarfDebug, &InfoSize, &AbbrevSize,
+                                  &LineSize, &LocSize, &ArangesSize,
+                                  &MacInfoSize, &PubNamesSize, &StrSize,
+                                  &FrameSize, &RangesSize, &PubTypesSize);
+
+    fprintf(stdout, "SectionSizes()\nInfoSize = %d\n"
+                    "AbbrevSize = %d\n"
+                    "LineSize = %d\n"
+                    "LocSize = %d\n"
+                    "ArangesSize = %d\n"
+                    "MacInfoSize = %d\n"
+                    "PubNamesSize = %d\n"
+                    "StrSize = %d\n"
+                    "FrameSize = %d\n"
+                    "RangesSize = %d\n"
+                    "PubTypesSize = %d\n",
+            InfoSize, AbbrevSize,
+            LineSize, LocSize, ArangesSize,
+            MacInfoSize, PubNamesSize, StrSize,
+            FrameSize, RangesSize, PubTypesSize);
+}
+
 int main(void)
 {
     int DwarfResult = -1;
@@ -103,6 +139,7 @@ int main(void)
     SectionInfo(&DwarfDebug, ".debug_info");
     SectionGroupSizes(&DwarfDebug);
     SectionGroupMapping(&DwarfDebug);
+    SectionSizes(&DwarfDebug);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
     if (DwarfResult != DW_DLV_OK) {
