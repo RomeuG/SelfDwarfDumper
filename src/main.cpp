@@ -107,13 +107,55 @@ void SectionSizes(Dwarf_Debug* DwarfDebug)
                     "StrSize = %d\n"
                     "FrameSize = %d\n"
                     "RangesSize = %d\n"
-                    "PubTypesSize = %d\n",
+                    "PubTypesSize = %d\n\n",
             InfoSize, AbbrevSize,
             LineSize, LocSize, ArangesSize,
             MacInfoSize, PubNamesSize, StrSize,
             FrameSize, RangesSize, PubTypesSize);
 }
 
+void CUHeaders(Dwarf_Debug* DwarfDebug, Dwarf_Bool IsInfo)
+{
+    Dwarf_Unsigned HeaderLength = 0;
+    Dwarf_Half VersionStamp = 0;
+    Dwarf_Unsigned AbbrevOffset = 0;
+    Dwarf_Half AddressSize = 0;
+    Dwarf_Half OffsetSize = 0;
+    Dwarf_Half ExtensionSize = 0;
+    Dwarf_Sig8 Signature = {};
+    Dwarf_Unsigned TypeOffset = 0;
+    Dwarf_Unsigned NextCUHeader = 0;
+    Dwarf_Half HeaderCUType = 0;
+    Dwarf_Error DwarfError;
+
+    dwarf_next_cu_header_d(*DwarfDebug, IsInfo, &HeaderLength,
+                           &VersionStamp, &AbbrevOffset, &AddressSize,
+                           &OffsetSize, &ExtensionSize, &Signature,
+                           &TypeOffset, &NextCUHeader, &HeaderCUType,
+                           &DwarfError);
+
+    fprintf(stdout, "CUHeaders():\n"
+                    "HeaderLength = %d\n"
+                    "VersionStamp = %d\n"
+                    "AbbrevOffset = %d\n"
+                    "AddressSize = %d\n"
+                    "OffsetSize = %d\n"
+                    "ExtensionSize = %d\n"
+                    "Signature = %d\n"
+                    "TypeOffset = %d\n"
+                    "NextCUHeader = %d\n"
+                    "HeaderCUType = %d\n\n",
+            HeaderLength,
+            VersionStamp,
+            AbbrevOffset,
+            AddressSize,
+            OffsetSize,
+            ExtensionSize,
+            Signature,
+            HeaderCUType,
+            TypeOffset,
+            NextCUHeader);
+}
 int main(void)
 {
     int DwarfResult = -1;
@@ -140,6 +182,7 @@ int main(void)
     SectionGroupSizes(&DwarfDebug);
     SectionGroupMapping(&DwarfDebug);
     SectionSizes(&DwarfDebug);
+    CUHeaders(&DwarfDebug, 1);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
     if (DwarfResult != DW_DLV_OK) {
