@@ -158,16 +158,50 @@ void CUHeaders(Dwarf_Debug* DwarfDebug, Dwarf_Bool IsInfo)
             NextCUHeader);
 }
 
-Dwarf_Unsigned GetAttributeValue(Dwarf_Die DwarfDie, int Attribute)
+// Dwarf_Unsigned GetAttributeValue(Dwarf_Die DwarfDie, int Attribute)
+// {
+//     Dwarf_Unsigned AttributeValue = 0;
+//     Dwarf_Attribute Attribute = 0;
+//     Dwarf_Error DwarfError = 0;
+
+//     dwarf_attr(DwarfDie, Attribute, &Attribute, &DwarfError);
+//     dwarf_formudata(Attribute, &AttributeValue, &DwarfError);
+
+//     return AttributeValue;
+// }
+
+void PrintDieAttributes(Dwarf_Die DwarfDie)
 {
-    Dwarf_Unsigned AttributeValue = 0;
-    Dwarf_Attribute Attribute = 0;
-    Dwarf_Error DwarfError = 0;
+    int Result = 0;
 
-    dwarf_attr(DwarfDie, Attribute, &Attribute, &DwarfError);
-    dwarf_formudata(Attribute, &AttributeValue, &DwarfError);
+    Dwarf_Attribute* AttributeList;
+    Dwarf_Signed AttributeCount;
 
-    return AttributeValue;
+    Result = dwarf_attrlist(DwarfDie, &AttributeList, &AttributeCount, 0);
+    if (Result == DW_DLV_ERROR) {
+        fprintf(stderr, "dwarf_attrlist() error\n");
+        exit(1);
+    }
+
+    for (int Index = 0; Index < AttributeCount; Index++) {
+        Dwarf_Half AttributeCode;
+        Result = dwarf_whatattr(AttributeList[Index], &AttributeCode, 0);
+        if (Result == DW_DLV_ERROR) {
+            fprintf(stderr, "dwarf_whatattr() error\n");
+            exit(1);
+        }
+
+        if (AttributeCode == DW_AT_name) {
+            char* String = 0;
+            Result = dwarf_formstring(AttributeList[Index], &String, 0);
+            if (Result == DW_DLV_ERROR) {
+                fprintf(stderr, "dwarf_formstring() error\n");
+                exit(1);
+            }
+
+            fprintf(stdout, "Attribute name: %s\n", String);
+        }
+    }
 }
 
 void UntitledFunction(Dwarf_Debug DwarfDebug)
@@ -188,6 +222,8 @@ void UntitledFunction(Dwarf_Debug DwarfDebug)
         fprintf(stderr, "dwarf_siblingof() error\n");
         exit(1);
     }
+
+    PrintDieAttributes(DwarfDie);
 
     Result = dwarf_child(DwarfDie, &DwarfDieChild, 0);
     if (Result == DW_DLV_ERROR) {
@@ -218,7 +254,7 @@ int main(void)
 
     fprintf(stdout, "DwarfDebug: %p\nDwarfError: %p\n\n", DwarfDebug, DwarfError);
 
-    PrintTags(DwarfDebug);
+    UntitledFunction(DwarfDebug);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
     if (DwarfResult != DW_DLV_OK) {
