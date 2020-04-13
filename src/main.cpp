@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 static Dwarf_Unsigned GlobalMapEntryCount = 0;
+static Dwarf_Die GlobalDwarfDie = 0;
 
 // NOTE: only handled if Dwarf_Error == NULL in Dwarf functions
 static void DwarfErrorHandler(Dwarf_Error Error, Dwarf_Ptr ErrArg)
@@ -156,6 +157,45 @@ void CUHeaders(Dwarf_Debug* DwarfDebug, Dwarf_Bool IsInfo)
             TypeOffset,
             NextCUHeader);
 }
+
+Dwarf_Unsigned GetAttributeValue(Dwarf_Die DwarfDie, int Attribute)
+{
+    Dwarf_Unsigned AttributeValue = 0;
+    Dwarf_Attribute Attribute = 0;
+    Dwarf_Error DwarfError = 0;
+
+    dwarf_attr(DwarfDie, Attribute, &Attribute, &DwarfError);
+    dwarf_formudata(Attribute, &AttributeValue, &DwarfError);
+
+    return AttributeValue;
+}
+
+void UntitledFunction(Dwarf_Debug DwarfDebug)
+{
+    int Result;
+    Dwarf_Error DwarfError = 0;
+    Dwarf_Die DwarfDie = 0;
+    Dwarf_Die DwarfDieChild = 0;
+
+    Result = dwarf_next_cu_header(DwarfDebug, 0, 0, 0, 0, 0, 0);
+    if (Result == DW_DLV_ERROR) {
+        fprintf(stderr, "dwarf_next_cu_header() error\n");
+        exit(1);
+    }
+
+    Result = dwarf_siblingof(DwarfDebug, 0, &DwarfDie, 0);
+    if (Result == DW_DLV_ERROR) {
+        fprintf(stderr, "dwarf_siblingof() error\n");
+        exit(1);
+    }
+
+    Result = dwarf_child(DwarfDie, &DwarfDieChild, 0);
+    if (Result == DW_DLV_ERROR) {
+        fprintf(stderr, "dwarf_child() error\n");
+        exit(1);
+    }
+}
+
 int main(void)
 {
     int DwarfResult = -1;
@@ -178,11 +218,7 @@ int main(void)
 
     fprintf(stdout, "DwarfDebug: %p\nDwarfError: %p\n\n", DwarfDebug, DwarfError);
 
-    SectionInfo(&DwarfDebug, ".debug_info");
-    SectionGroupSizes(&DwarfDebug);
-    SectionGroupMapping(&DwarfDebug);
-    SectionSizes(&DwarfDebug);
-    CUHeaders(&DwarfDebug, 1);
+    PrintTags(DwarfDebug);
 
     DwarfResult = dwarf_finish(DwarfDebug, &DwarfError);
     if (DwarfResult != DW_DLV_OK) {
