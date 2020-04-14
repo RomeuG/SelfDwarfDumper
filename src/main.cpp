@@ -170,7 +170,14 @@ void CUHeaders(Dwarf_Debug* DwarfDebug, Dwarf_Bool IsInfo)
 //     return AttributeValue;
 // }
 
-void PrintDieAttributes(Dwarf_Die DwarfDie)
+Dwarf_Half GetDieTag(Dwarf_Die DwarfDie)
+{
+    Dwarf_Half Value = 0;
+
+    dwarf_tag(DwarfDie, &Value, 0);
+
+    return Value;
+}
 {
     int Result = 0;
 
