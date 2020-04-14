@@ -178,6 +178,8 @@ Dwarf_Half GetDieTag(Dwarf_Die DwarfDie)
 
     return Value;
 }
+
+void PrintTagSubprogram(Dwarf_Die DwarfDie)
 {
     int Result = 0;
 
@@ -206,8 +208,33 @@ Dwarf_Half GetDieTag(Dwarf_Die DwarfDie)
                 exit(1);
             }
 
-            fprintf(stdout, "Attribute name: %s\n", String);
+            fprintf(stdout, "Subprogram name: %s\n", String);
         }
+
+        if (AttributeCode == DW_AT_entry_pc) {
+            Dwarf_Addr Address = 0;
+            Result = dwarf_formaddr(AttributeList[Index], &Address, 0);
+            if (Result == DW_DLV_ERROR) {
+                fprintf(stderr, "dwarf_formaddr() error\n");
+                exit(1);
+            }
+
+            fprintf(stdout, "Subprogram entry address: %X\n", Address);
+        }
+    }
+}
+
+void PrintDieAttributes(Dwarf_Die DwarfDie, Dwarf_Half DieTag)
+{
+    int Result = 0;
+
+    Dwarf_Attribute* AttributeList;
+    Dwarf_Signed AttributeCount;
+
+    fprintf(stdout, "DIE Tag: %x\n", DieTag);
+
+    if (DieTag == DW_TAG_subprogram) {
+        PrintTagSubprogram(DwarfDie);
     }
 }
 
@@ -230,13 +257,17 @@ void UntitledFunction(Dwarf_Debug DwarfDebug)
         exit(1);
     }
 
-    PrintDieAttributes(DwarfDie);
+    Dwarf_Half DieType = GetDieTag(DwarfDie);
+    PrintDieAttributes(DwarfDie, DieType);
 
     Result = dwarf_child(DwarfDie, &DwarfDieChild, 0);
     if (Result == DW_DLV_ERROR) {
         fprintf(stderr, "dwarf_child() error\n");
         exit(1);
     }
+
+    DieType = GetDieTag(DwarfDieChild);
+    PrintDieAttributes(DwarfDieChild, DieType);
 }
 
 int main(void)
