@@ -20,12 +20,39 @@ void InitFunctionArray()
     TagFunctions[0x1d] = HandleDwarfFunction;
     TagFunctions[0x2e] = HandleDwarfFunction;
 }
+
+const char* GetTagDirectoryName(Dwarf_Die* Die)
+{
+    Dwarf_Attribute Attribute = {};
+    dwarf_attr_integrate(Die, DW_AT_comp_dir, &Attribute);
+    return dwarf_formstring(&Attribute);
+}
+
+const char* GetTagFileName(Dwarf_Die* Die)
+{
+    Dwarf_Attribute Attribute = {};
+    dwarf_attr_integrate(Die, DW_AT_name, &Attribute);
+    return dwarf_formstring(&Attribute);
+}
+
 const char* GetTagName(Dwarf_Die* Die)
 {
     Dwarf_Attribute Attribute = {};
     dwarf_attr_integrate(Die, DW_AT_name, &Attribute);
     return dwarf_formstring(&Attribute);
 }
+
+Dwarf_Word GetTagLine(Dwarf_Die* Die)
+{
+    Dwarf_Word Line = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr_integrate(Die, DW_AT_decl_line, &Attribute);
+    dwarf_formudata(&Attribute, &Line);
+
+    return Line;
+}
+
 void HandleDwarfFunction(Dwarf_Die* Die)
 {
     const char* Name = 0;
@@ -36,6 +63,7 @@ void HandleDwarfFunction(Dwarf_Die* Die)
 
     fprintf(stdout, "Function: %s:%llu\n", Name, Line);
 }
+
 void DwarfPrintFunctionInfo()
 {
     int Result = 0;
