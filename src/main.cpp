@@ -10,7 +10,31 @@
 static Elf* ElfObject = 0;
 static Dwarf* DwarfObject = 0;
 
-int main(void)
+void DwarfPrintFunctionInfo()
+{
+    int Result = 0;
+
+    Dwarf_Off Offset = 0;
+    Dwarf_Off PreviousOffset = 0;
+
+    size_t HdrOffset = 0;
+
+    while (dwarf_nextcu(DwarfObject, Offset, &Offset, &HdrOffset, 0, 0, 0) == 0) {
+        fprintf(stdout, "Compilation Unit - Offset:%llu - HdrOffset:%d\n", Offset, HdrOffset);
+
+        Dwarf_Die* ResultDie;
+        Dwarf_Die CUDie;
+
+        ResultDie = dwarf_offdie(DwarfObject, PreviousOffset + HdrOffset, &CUDie);
+        if (ResultDie == NULL) {
+            fprintf(stderr, "dwarf_offdie() == NULL\n");
+            break;
+        }
+
+        PreviousOffset = Offset;
+    }
+}
+
 int main(int argc, char** argv)
 {
     int Result = 0;
@@ -30,6 +54,9 @@ int main(int argc, char** argv)
         fprintf(stderr, "dwarf_begin_elf() error\n");
         exit(1);
     }
+
+    // main part
+    DwarfPrintFunctionInfo();
 
     dwarf_end(DwarfObject);
     elf_end(ElfObject);
