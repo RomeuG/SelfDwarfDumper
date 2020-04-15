@@ -11,12 +11,13 @@ static Elf* ElfObject = 0;
 static Dwarf* DwarfObject = 0;
 
 int main(void)
+int main(int argc, char** argv)
 {
     int Result = 0;
 
     elf_version(EV_CURRENT);
 
-    int FileDescriptor = open("a.out", O_RDONLY, 0);
+    int FileDescriptor = open(argv[1], O_RDONLY, 0);
 
     ElfObject = elf_begin(FileDescriptor, ELF_C_READ, 0);
     if (ElfObject == 0) {
