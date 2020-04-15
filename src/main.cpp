@@ -7,9 +7,19 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+void HandleDwarfFunction(Dwarf_Die* Die);
+
 static Elf* ElfObject = 0;
 static Dwarf* DwarfObject = 0;
 
+void (*TagFunctions[75])(Dwarf_Die* Die) = { 0 };
+
+void InitFunctionArray()
+{
+    TagFunctions[0x03] = HandleDwarfFunction;
+    TagFunctions[0x1d] = HandleDwarfFunction;
+    TagFunctions[0x2e] = HandleDwarfFunction;
+}
 const char* GetTagName(Dwarf_Die* Die)
 {
     Dwarf_Attribute Attribute = {};
@@ -60,6 +70,8 @@ int main(int argc, char** argv)
         fprintf(stderr, "dwarf_begin_elf() error\n");
         exit(1);
     }
+
+    InitFunctionArray();
 
     // main part
     DwarfPrintFunctionInfo();
