@@ -10,6 +10,12 @@
 static Elf* ElfObject = 0;
 static Dwarf* DwarfObject = 0;
 
+const char* GetTagName(Dwarf_Die* Die)
+{
+    Dwarf_Attribute Attribute = {};
+    dwarf_attr_integrate(Die, DW_AT_name, &Attribute);
+    return dwarf_formstring(&Attribute);
+}
 void DwarfPrintFunctionInfo()
 {
     int Result = 0;
