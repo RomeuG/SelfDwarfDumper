@@ -26,6 +26,16 @@ const char* GetTagName(Dwarf_Die* Die)
     dwarf_attr_integrate(Die, DW_AT_name, &Attribute);
     return dwarf_formstring(&Attribute);
 }
+void HandleDwarfFunction(Dwarf_Die* Die)
+{
+    const char* Name = 0;
+    Dwarf_Word Line = 0;
+
+    Name = GetTagName(Die);
+    Line = GetTagLine(Die);
+
+    fprintf(stdout, "Function: %s:%llu\n", Name, Line);
+}
 void DwarfPrintFunctionInfo()
 {
     int Result = 0;
