@@ -59,15 +59,107 @@ Dwarf_Word GetTagDeclLine(Dwarf_Die* Die)
     return Line;
 }
 
+Dwarf_Word GetTagDeclColumn(Dwarf_Die* Die)
+{
+    Dwarf_Word Column = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_decl_column, &Attribute);
+    dwarf_formudata(&Attribute, &Column);
+
+    return Column;
+}
+
+const char* GetTagLinkageName(Dwarf_Die* Die)
+{
+    Dwarf_Attribute Attribute = {};
+    dwarf_attr_integrate(Die, DW_AT_linkage_name, &Attribute);
+    return dwarf_formstring(&Attribute);
+}
+
+Dwarf_Word GetTagType(Dwarf_Die* Die)
+{
+    Dwarf_Word Type = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_type, &Attribute);
+    dwarf_formudata(&Attribute, &Type);
+
+    return Type;
+}
+
+Dwarf_Addr GetTagLowPC(Dwarf_Die* Die)
+{
+    Dwarf_Addr LowPC = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_low_pc, &Attribute);
+    dwarf_formaddr(&Attribute, &LowPC);
+
+    return LowPC;
+}
+
+Dwarf_Word GetTagHighPC(Dwarf_Die* Die)
+{
+    Dwarf_Word HighPC = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_high_pc, &Attribute);
+    dwarf_formudata(&Attribute, &HighPC);
+
+    return HighPC;
+}
+
+bool GetTagExternal(Dwarf_Die* Die)
+{
+    bool External = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_external, &Attribute);
+    dwarf_formflag(&Attribute, &External);
+
+    return External;
+}
+
+Dwarf_Addr GetTagFrameBase(Dwarf_Die* Die)
+{
+    Dwarf_Addr FrameBase = 0;
+    Dwarf_Attribute Attribute = {};
+
+    dwarf_attr(Die, DW_AT_frame_base, &Attribute);
+    int Result = dwarf_formaddr(&Attribute, &FrameBase);
+    if (Result != 0) {
+        return -1;
+    }
+
+    return FrameBase;
+}
+
 void HandleDwarfSubprogram(Dwarf_Die* Die)
 {
     const char* Name = 0;
+    const char* LinkageName = 0;
+
     Dwarf_Word File = 0;
     Dwarf_Word Line = 0;
+    Dwarf_Word Column = 0;
+    Dwarf_Word Type = 0;
+    Dwarf_Addr LowPC = 0;
+    Dwarf_Word HighPC = 0;
+    Dwarf_Addr FrameBase = 0;
 
+    bool External = 0;
+
+    External = GetTagExternal(Die);
     Name = GetTagName(Die);
-    File = GetTagDeclFile(Die);
     Line = GetTagDeclLine(Die);
+    File = GetTagDeclFile(Die);
+    Column = GetTagDeclColumn(Die);
+    LinkageName = GetTagLinkageName(Die);
+    Type = GetTagType(Die);
+    LowPC = GetTagLowPC(Die);
+    HighPC = GetTagHighPC(Die);
+    FrameBase = GetTagFrameBase(Die);
 
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
@@ -83,10 +175,17 @@ void HandleDwarfSubprogram(Dwarf_Die* Die)
     //                   DW_AT_sibling               <0x00001640>
 
     fprintf(stdout, "DW_TAG_subprogram\n"
+                    "\tDW_AT_external: %d\n"
                     "\tDW_AT_name: %s\n"
+                    "\tDW_AT_decl_file: %llu\n"
                     "\tDW_AT_decl_line: %d\n"
-                    "\tDW_AT_decl_file: %llu\n",
-            Name, Line, File);
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_linkage_name: %s\n"
+                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_low_pc: 0x%x\n"
+                    "\tDW_AT_high_pc: %llu\n"
+                    "\tDW_AT_frame_base: 0x%x\n",
+            External, Name, File, Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase);
 }
 
 void DwarfPrintFunctionInfo()
