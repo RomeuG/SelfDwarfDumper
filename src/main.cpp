@@ -1,18 +1,18 @@
-#include <dwarf.h>
-#include <elfutils/libdw.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libdwarf/dwarf.h>
+#include <libdwarf/libdwarf.h>
 #include <libelf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
-void HandleDwarfSubprogram(Dwarf_Die* Die);
+static Dwarf_Debug GlobalDwarfDebug;
+static Dwarf_Error GlobalDwarfError;
 
-static Elf* ElfObject = 0;
-static Dwarf* DwarfObject = 0;
+void HandleDwarfSubprogram(Dwarf_Die Die);
 
-void (*TagFunctions[75])(Dwarf_Die* Die) = { 0 };
+void (*TagFunctions[75])(Dwarf_Die Die) = { 0 };
 
 void InitFunctionArray()
 {
@@ -21,131 +21,160 @@ void InitFunctionArray()
     TagFunctions[0x2e] = HandleDwarfSubprogram;
 }
 
-const char* GetTagDirectoryName(Dwarf_Die* Die)
+char* GetTagDirectoryName(Dwarf_Die Die)
 {
-    Dwarf_Attribute Attribute = {};
-    dwarf_attr_integrate(Die, DW_AT_comp_dir, &Attribute);
-    return dwarf_formstring(&Attribute);
+    char* DirectoryName = 0;
+    Dwarf_Attribute Attribute = 0;
+
+    dwarf_attr(Die, DW_AT_comp_dir, &Attribute, 0);
+    dwarf_formstring(Attribute, &DirectoryName, 0);
+
+    return DirectoryName;
 }
 
-Dwarf_Word GetTagDeclFile(Dwarf_Die* Die)
+Dwarf_Unsigned GetTagDeclFile(Dwarf_Die Die)
 {
     int Result = 0;
 
-    Dwarf_Word Data = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Unsigned Data = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr_integrate(Die, DW_AT_decl_file, &Attribute);
-    dwarf_formudata(&Attribute, &Data);
+    dwarf_attr(Die, DW_AT_decl_file, &Attribute, 0);
+    dwarf_formudata(Attribute, &Data, 0);
 
     return Data;
 }
 
-const char* GetTagName(Dwarf_Die* Die)
+const char* GetTagName(Dwarf_Die Die)
 {
-    Dwarf_Attribute Attribute = {};
-    dwarf_attr_integrate(Die, DW_AT_name, &Attribute);
-    return dwarf_formstring(&Attribute);
+    char* Name = 0;
+    Dwarf_Attribute Attribute = 0;
+
+    dwarf_attr(Die, DW_AT_name, &Attribute, 0);
+    dwarf_formstring(Attribute, &Name, 0);
+
+    return Name;
 }
 
-Dwarf_Word GetTagDeclLine(Dwarf_Die* Die)
+Dwarf_Unsigned GetTagDeclLine(Dwarf_Die Die)
 {
-    Dwarf_Word Line = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Unsigned Line = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_decl_line, &Attribute);
-    dwarf_formudata(&Attribute, &Line);
+    dwarf_attr(Die, DW_AT_decl_line, &Attribute, 0);
+    dwarf_formudata(Attribute, &Line, 0);
 
     return Line;
 }
 
-Dwarf_Word GetTagDeclColumn(Dwarf_Die* Die)
+Dwarf_Unsigned GetTagDeclColumn(Dwarf_Die Die)
 {
-    Dwarf_Word Column = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Unsigned Column = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_decl_column, &Attribute);
-    dwarf_formudata(&Attribute, &Column);
+    dwarf_attr(Die, DW_AT_decl_column, &Attribute, 0);
+    dwarf_formudata(Attribute, &Column, 0);
 
     return Column;
 }
 
-const char* GetTagLinkageName(Dwarf_Die* Die)
+const char* GetTagLinkageName(Dwarf_Die Die)
 {
-    Dwarf_Attribute Attribute = {};
-    dwarf_attr_integrate(Die, DW_AT_linkage_name, &Attribute);
-    return dwarf_formstring(&Attribute);
+    char* LinkageName = 0;
+    Dwarf_Attribute Attribute = 0;
+
+    int Result = dwarf_attr(Die, DW_AT_linkage_name, &Attribute, 0);
+    if (Result != 0) {
+        return 0;
+    }
+
+    dwarf_formstring(Attribute, &LinkageName, 0);
+
+    return LinkageName;
 }
 
-Dwarf_Word GetTagType(Dwarf_Die* Die)
+Dwarf_Unsigned GetTagType(Dwarf_Die Die)
 {
-    Dwarf_Word Type = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Off Type = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_type, &Attribute);
-    dwarf_formudata(&Attribute, &Type);
+    int Result = dwarf_attr(Die, DW_AT_type, &Attribute, 0);
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
+
+    dwarf_formref(Attribute, &Type, 0);
 
     return Type;
 }
 
-Dwarf_Addr GetTagLowPC(Dwarf_Die* Die)
+Dwarf_Addr GetTagLowPC(Dwarf_Die Die)
 {
     Dwarf_Addr LowPC = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_low_pc, &Attribute);
-    dwarf_formaddr(&Attribute, &LowPC);
+    int Result = dwarf_attr(Die, DW_AT_low_pc, &Attribute, 0);
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
+
+    dwarf_formaddr(Attribute, &LowPC, 0);
 
     return LowPC;
 }
 
-Dwarf_Word GetTagHighPC(Dwarf_Die* Die)
+Dwarf_Unsigned GetTagHighPC(Dwarf_Die Die)
 {
-    Dwarf_Word HighPC = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Unsigned HighPC = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_high_pc, &Attribute);
-    dwarf_formudata(&Attribute, &HighPC);
+    int Result = dwarf_attr(Die, DW_AT_high_pc, &Attribute, 0);
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
+
+    dwarf_formudata(Attribute, &HighPC, 0);
 
     return HighPC;
 }
 
-bool GetTagExternal(Dwarf_Die* Die)
+Dwarf_Bool GetTagExternal(Dwarf_Die Die)
 {
-    bool External = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Bool External = 0;
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_external, &Attribute);
-    dwarf_formflag(&Attribute, &External);
+    dwarf_attr(Die, DW_AT_external, &Attribute, 0);
+    dwarf_formflag(Attribute, &External, 0);
 
     return External;
 }
 
-Dwarf_Addr GetTagFrameBase(Dwarf_Die* Die)
+Dwarf_Addr GetTagFrameBase(Dwarf_Die Die)
 {
     Dwarf_Addr FrameBase = 0;
-    Dwarf_Attribute Attribute = {};
+    Dwarf_Attribute Attribute = 0;
 
-    dwarf_attr(Die, DW_AT_frame_base, &Attribute);
-    int Result = dwarf_formaddr(&Attribute, &FrameBase);
-    if (Result != 0) {
-        return -1;
+    int Result = dwarf_attr(Die, DW_AT_frame_base, &Attribute, 0);
+    if (Result != DW_DLV_OK) {
+        return 0;
     }
+
+    //dwarf_formaddr(Attribute, &FrameBase, 0);
 
     return FrameBase;
 }
 
-void HandleDwarfSubprogram(Dwarf_Die* Die)
+void HandleDwarfSubprogram(Dwarf_Die Die)
 {
     const char* Name = 0;
     const char* LinkageName = 0;
 
-    Dwarf_Word File = 0;
-    Dwarf_Word Line = 0;
-    Dwarf_Word Column = 0;
-    Dwarf_Word Type = 0;
+    Dwarf_Unsigned File = 0;
+    Dwarf_Unsigned Line = 0;
+    Dwarf_Unsigned Column = 0;
+    Dwarf_Unsigned Type = 0;
     Dwarf_Addr LowPC = 0;
-    Dwarf_Word HighPC = 0;
+    Dwarf_Unsigned HighPC = 0;
     Dwarf_Addr FrameBase = 0;
 
     bool External = 0;
@@ -159,7 +188,7 @@ void HandleDwarfSubprogram(Dwarf_Die* Die)
     Type = GetTagType(Die);
     LowPC = GetTagLowPC(Die);
     HighPC = GetTagHighPC(Die);
-    FrameBase = GetTagFrameBase(Die);
+    //FrameBase = GetTagFrameBase(Die);
 
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
@@ -183,80 +212,117 @@ void HandleDwarfSubprogram(Dwarf_Die* Die)
                     "\tDW_AT_linkage_name: %s\n"
                     "\tDW_AT_type: %llu\n"
                     "\tDW_AT_low_pc: 0x%x\n"
-                    "\tDW_AT_high_pc: %llu\n"
-                    "\tDW_AT_frame_base: 0x%x\n",
-            External, Name, File, Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase);
+                    "\tDW_AT_high_pc: %llu\n",
+            External,
+            Name, File, Line, Column, LinkageName, Type, LowPC, HighPC);
 }
 
 void DwarfPrintFunctionInfo()
 {
+    // while (dwarf_nextcu(DwarfObject, Offset, &Offset, &HdrOffset, 0, 0, 0) == 0) {
+    //     fprintf(stdout, "Compilation Unit: Offset:%llu - HdrOffset:%d\n", Offset, HdrOffset);
+
+    //     Dwarf_Die ResultDie;
+    //     Dwarf_Die CUDie;
+
+    //     dwarf_offdie(DwarfObject, PreviousOffset + HdrOffset, CUDie);
+
+    //     fprintf(stdout, "File: %s/%s\n", GetTagDirectoryName(CUDie), GetTagName(CUDie));
+
+    //     if (dwarf_child(CUDie, ResultDie) != 0) {
+    //         continue;
+    //     }
+
+    //     do {
+    //         int Tag;
+    //         Tag = dwarf_tag(&ResultDie);
+
+    //         switch (Tag) {
+    //             case DW_TAG_subprogram:
+    //                 TagFunctions[Tag](&ResultDie);
+    //                 break;
+    //             // case DW_TAG_entry_point:
+    //             // case DW_TAG_inlined_subroutine:
+    //             default:
+    //                 break;
+    //         }
+    //     } while (dwarf_siblingof(&ResultDie, &ResultDie) == 0);
+
+    //     PreviousOffset = Offset;
+    // }
     int Result = 0;
+    int CUResult = 0;
 
-    Dwarf_Off Offset = 0;
-    Dwarf_Off PreviousOffset = 0;
+    CUResult = dwarf_next_cu_header_c(GlobalDwarfDebug, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-    size_t HdrOffset = 0;
-
-    while (dwarf_nextcu(DwarfObject, Offset, &Offset, &HdrOffset, 0, 0, 0) == 0) {
-        fprintf(stdout, "Compilation Unit: Offset:%llu - HdrOffset:%d\n", Offset, HdrOffset);
-
-        Dwarf_Die ResultDie;
+    while (CUResult == DW_DLV_OK) {
         Dwarf_Die CUDie;
+        Dwarf_Die ChildDie;
 
-        dwarf_offdie(DwarfObject, PreviousOffset + HdrOffset, &CUDie);
+        Result = dwarf_siblingof_b(GlobalDwarfDebug, 0, 1, &CUDie, &GlobalDwarfError);
+        if (Result != DW_DLV_OK) {
+            fprintf(stderr, "dwarf_siblingof() error: %s\n", dwarf_errmsg(GlobalDwarfError));
+            exit(1);
+        }
 
-        fprintf(stdout, "File: %s/%s\n", GetTagDirectoryName(&CUDie), GetTagName(&CUDie));
+        fprintf(stdout, "File: %s/%s\n", GetTagDirectoryName(CUDie), GetTagName(CUDie));
 
-        if (dwarf_child(&CUDie, &ResultDie) != 0) {
+        // while (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_ERROR) {
+        //     Dwarf_Die SiblingDie = 0;
+        // }
+
+        if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
+            fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
             continue;
         }
 
         do {
-            int Tag;
-            Tag = dwarf_tag(&ResultDie);
+            Dwarf_Half Tag;
+            Result = dwarf_tag(ChildDie, &Tag, &GlobalDwarfError);
+            if (Result != DW_DLV_OK) {
+                fprintf(stdout, "dwarf_tag() error: %s\n", dwarf_errmsg(GlobalDwarfError));
+                exit(1);
+            }
 
             switch (Tag) {
                 case DW_TAG_subprogram:
-                    TagFunctions[Tag](&ResultDie);
+                    TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
                 // case DW_TAG_inlined_subroutine:
                 default:
                     break;
             }
-        } while (dwarf_siblingof(&ResultDie, &ResultDie) == 0);
+        } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
 
-        PreviousOffset = Offset;
+        CUResult = dwarf_next_cu_header_c(GlobalDwarfDebug, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 }
 
 int main(int argc, char** argv)
 {
-    int Result = 0;
-
-    elf_version(EV_CURRENT);
-
-    int FileDescriptor = open(argv[1], O_RDONLY, 0);
-
-    ElfObject = elf_begin(FileDescriptor, ELF_C_READ, 0);
-    if (ElfObject == 0) {
-        fprintf(stderr, "elf_begin() error: %s\n", elf_errmsg(elf_errno()));
-        exit(1);
-    }
-
-    DwarfObject = dwarf_begin_elf(ElfObject, DWARF_C_READ, 0);
-    if (DwarfObject == 0) {
-        fprintf(stderr, "dwarf_begin_elf() error\n");
-        exit(1);
-    }
+    int FileDescriptor;
+    Dwarf_Handler DwarfHandler;
+    Dwarf_Ptr DwarfErrArg;
+    Dwarf_Error DwarfError;
 
     InitFunctionArray();
 
-    // main part
+    FileDescriptor = open("a.out", O_RDONLY);
+
+    int DwarfInitResult = dwarf_init(FileDescriptor, DW_DLC_READ, DwarfHandler, DwarfErrArg, &GlobalDwarfDebug, &DwarfError);
+    if (DwarfInitResult != DW_DLV_OK) {
+        fprintf(stderr, "dwarf_init() error.\n");
+        exit(-1);
+    }
+
     DwarfPrintFunctionInfo();
 
-    dwarf_end(DwarfObject);
-    elf_end(ElfObject);
+    int DwarfFinishResult = dwarf_finish(GlobalDwarfDebug, &DwarfError);
+    if (DwarfFinishResult != DW_DLV_OK) {
+        fprintf(stderr, "dwarf_init() error.\n");
+        exit(-1);
+    }
 
     return 0;
 }
