@@ -169,6 +169,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
 	Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
 	Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
 	Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base);
+	Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
 
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
@@ -193,8 +194,9 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
                     "\tDW_AT_type: %llu\n"
                     "\tDW_AT_low_pc: 0x%0.8x\n"
                     "\tDW_AT_high_pc: %llu\n"
-                    "\tDW_AT_frame_base: 0x%0.8x\n",
-            External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase);
+                    "\tDW_AT_frame_base: 0x%0.8x\n"
+                    "\tDW_AT_sibling: 0x%0.8x\n",
+            External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 }
 
 void DwarfPrintFunctionInfo()
