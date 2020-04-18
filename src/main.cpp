@@ -199,6 +199,18 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
             External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 }
 
+void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
+{
+    char* Name = GetTagString(CUDie, DW_AT_name);
+    char* Directory = GetTagString(CUDie, DW_AT_comp_dir);
+    Dwarf_Off MacroOffset = GetTagRef(CUDie, DW_AT_macros);
+
+    fprintf(stdout,
+            "File: %s/%s\n"
+            "Macro Offset: 0x%0.8x\n",
+            Directory, Name, MacroOffset);
+}
+
 void DwarfPrintFunctionInfo()
 {
     int Result = 0;
@@ -217,7 +229,7 @@ void DwarfPrintFunctionInfo()
         }
 
         GetAllSourceFiles(CUDie);
-        fprintf(stdout, "File: %s/%s\n", GetTagString(CUDie, DW_AT_comp_dir), GetTagString(CUDie, DW_AT_name));
+        HandleDwarfCompilationUnit(CUDie);
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
