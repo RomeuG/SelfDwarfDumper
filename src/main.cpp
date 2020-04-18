@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#define TESTMACRO 0
+
 struct SourceFiles {
     char** Files;
     Dwarf_Signed Count;
@@ -39,101 +41,100 @@ void InitFunctionArray()
 
 char* GetTagString(Dwarf_Die Die, Dwarf_Half AttributeCode)
 {
-	int Result = 0;
+    int Result = 0;
 
-	char* Value = 0;
+    char* Value = 0;
     Dwarf_Attribute Attribute = 0;
 
     Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     Result = dwarf_formstring(Attribute, &Value, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     return Value;
 }
 
 Dwarf_Unsigned GetTagUnsignedData(Dwarf_Die Die, Dwarf_Half AttributeCode)
 {
-	int Result = 0;
+    int Result = 0;
 
-	Dwarf_Unsigned Value = 0;
+    Dwarf_Unsigned Value = 0;
     Dwarf_Attribute Attribute = 0;
 
     Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     Result = dwarf_formudata(Attribute, &Value, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     return Value;
 }
 
 Dwarf_Off GetTagRef(Dwarf_Die Die, Dwarf_Half AttributeCode)
 {
-	int Result = 0;
+    int Result = 0;
 
-	Dwarf_Off Value = 0;
+    Dwarf_Off Value = 0;
     Dwarf_Attribute Attribute = 0;
 
     Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     Result = dwarf_formref(Attribute, &Value, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     return Value;
 }
 
 Dwarf_Bool GetTagFlag(Dwarf_Die Die, Dwarf_Half AttributeCode)
 {
-	int Result = 0;
+    int Result = 0;
 
-	Dwarf_Bool Value = 0;
+    Dwarf_Bool Value = 0;
     Dwarf_Attribute Attribute = 0;
 
     Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     Result = dwarf_formflag(Attribute, &Value, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     return Value;
 }
 
-
 Dwarf_Addr GetTagAddress(Dwarf_Die Die, Dwarf_Half AttributeCode)
 {
-	int Result = 0;
+    int Result = 0;
 
-	Dwarf_Addr Value = 0;
+    Dwarf_Addr Value = 0;
     Dwarf_Attribute Attribute = 0;
 
     Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     Result = dwarf_formaddr(Attribute, &Value, 0);
-	if (Result != DW_DLV_OK) {
-		return 0;
-	}
+    if (Result != DW_DLV_OK) {
+        return 0;
+    }
 
     return Value;
 }
@@ -160,16 +161,16 @@ Dwarf_Unsigned GetTagExprLoc(Dwarf_Die Die, Dwarf_Half AttributeCode)
 void HandleDwarfSubprogram(Dwarf_Die Die)
 {
     Dwarf_Bool External = GetTagFlag(Die, DW_AT_external);
-	const char* Name = GetTagString(Die, DW_AT_name);
-	Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
-	Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
-	Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
-	const char* LinkageName = GetTagString(Die, DW_AT_linkage_name);
-	Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
-	Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
-	Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
-	Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base);
-	Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+    const char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    const char* LinkageName = GetTagString(Die, DW_AT_linkage_name);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
+    Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
+    Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base);
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
 
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
