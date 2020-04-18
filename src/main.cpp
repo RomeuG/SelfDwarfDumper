@@ -212,6 +212,65 @@ void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
             Directory, Name, MacroOffset);
 }
 
+// void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext)
+// {
+// 	dwarf_get_macro_defundef(MacroContext, );
+// }
+
+void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
+{
+    Dwarf_Unsigned Version = 0;
+    Dwarf_Macro_Context MacroContext = {};
+    Dwarf_Unsigned MacroUnitOffset = 0;
+    Dwarf_Unsigned MacroOpsCount = 0;
+    Dwarf_Unsigned MacroOpsDataLength = 0;
+
+    int Result = dwarf_get_macro_context(CUDie, &Version, &MacroContext, &MacroUnitOffset, &MacroOpsCount, &MacroOpsDataLength, 0);
+    if (Result != DW_DLV_OK) {
+        fprintf(stderr, "dwarf_get_macro_context() error\n");
+        exit(1);
+    }
+
+    for (int Index = 0; Index < MacroOpsCount; Index++) {
+        Dwarf_Unsigned SectionOffset = 0;
+        Dwarf_Half MacroOperator = 0;
+        Dwarf_Half FormsCount = 0;
+        const Dwarf_Small* FormCodeArray = 0;
+
+        Result = dwarf_get_macro_op(MacroContext, Index, &SectionOffset, &MacroOperator, &FormsCount, &FormCodeArray, 0);
+        if (Result != DW_DLV_OK) {
+            continue;
+        }
+
+        switch (MacroOperator) {
+            case 0:
+                break;
+            case DW_MACRO_define:
+            case DW_MACRO_undef:
+            case DW_MACRO_define_strp:
+            case DW_MACRO_undef_strp:
+            case DW_MACRO_define_strx:
+            case DW_MACRO_undef_strx:
+            case DW_MACRO_define_sup:
+            case DW_MACRO_undef_sup: {
+                Dwarf_Unsigned MLine = 0;
+                Dwarf_Unsigned MIndex = 0;
+                Dwarf_Unsigned MOffset = 0;
+                Dwarf_Half MFormsCount = 0;
+                const char* MacroString = 0;
+                // HandleMacroDefUndef(MacroContext);
+                Result = dwarf_get_macro_defundef(MacroContext, Index, &MLine, &MIndex, &MOffset, &MFormsCount, &MacroString, 0);
+                if (Result != DW_DLV_OK) {
+                    exit(1);
+                }
+                fprintf(stdout, "Macro String: %s\n", MacroString);
+            } break;
+        }
+    }
+
+    dwarf_dealloc_macro_context(MacroContext);
+}
+
 void DwarfPrintFunctionInfo()
 {
     int Result = 0;
@@ -231,6 +290,7 @@ void DwarfPrintFunctionInfo()
 
         GetAllSourceFiles(CUDie);
         HandleDwarfCompilationUnit(CUDie);
+        HandleDwarfCompilationUnitMacros(CUDie);
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
