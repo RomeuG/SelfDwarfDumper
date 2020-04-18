@@ -7,12 +7,28 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+struct SourceFiles {
+    char** Files;
+    Dwarf_Signed Count;
+};
+
 static Dwarf_Debug GlobalDwarfDebug;
 static Dwarf_Error GlobalDwarfError;
+static struct SourceFiles GlobalSourceFiles;
 
 void HandleDwarfSubprogram(Dwarf_Die Die);
 
 void (*TagFunctions[75])(Dwarf_Die Die) = { 0 };
+
+void GetAllSourceFiles(Dwarf_Die Die)
+{
+    dwarf_srcfiles(Die, &GlobalSourceFiles.Files, &GlobalSourceFiles.Count, 0);
+
+    fprintf(stdout, "Detected files:\n");
+    for (int Index = 0; Index < GlobalSourceFiles.Count; Index++) {
+        fprintf(stdout, "\t%s\n", GlobalSourceFiles.Files[Index]);
+    }
+}
 
 void InitFunctionArray()
 {
@@ -226,6 +242,7 @@ void DwarfPrintFunctionInfo()
             exit(1);
         }
 
+        GetAllSourceFiles(CUDie);
         fprintf(stdout, "File: %s/%s\n", GetTagDirectoryName(CUDie), GetTagName(CUDie));
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
