@@ -366,6 +366,9 @@ void DwarfPrintFunctionInfo()
                 default:
                     break;
             }
+
+            // TODO: check for children here and print them out in a
+            // separate function to possibly use recursion
         } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
 
         CUResult = dwarf_next_cu_header_c(GlobalDwarfDebug, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
