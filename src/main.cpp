@@ -19,6 +19,7 @@ static Dwarf_Error GlobalDwarfError;
 static struct SourceFiles GlobalSourceFiles;
 
 void HandleDwarfSubprogram(Dwarf_Die Die);
+void HandleDwarfVariable(Dwarf_Die Die);
 
 void (*TagFunctions[75])(Dwarf_Die Die) = { 0 };
 
@@ -36,7 +37,8 @@ void InitFunctionArray()
 {
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
-    TagFunctions[0x2e] = HandleDwarfSubprogram;
+    TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
+    TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
 }
 
 char* GetTagString(Dwarf_Die Die, Dwarf_Half AttributeCode)
@@ -200,6 +202,35 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
             External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 }
 
+void HandleDwarfVariable(Dwarf_Die Die)
+{
+    // DW_TAG_variable
+    //                   DW_AT_name                  TagFunctions
+    //                   DW_AT_decl_file             0x00000001 /home/romeu/Documents/Projects/untitled-debugger-project/src/main.cpp
+    //                   DW_AT_decl_line             0x00000017
+    //                   DW_AT_decl_column           0x00000008
+    //                   DW_AT_type                  <0x00000c86>
+    //                   DW_AT_external              yes(1)
+    //                   DW_AT_location              len 0x0009:
+    //                   034051000000000000: DW_OP_addr 0x00005140
+
+    const char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Bool External = GetTagFlag(Die, DW_AT_external);
+
+    fprintf(stdout, "DW_TAG_variable\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_decl_file: %s\n"
+                    "\tDW_AT_decl_line: %d\n"
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_external: %d\n"
+                    "\tDW_AT_type: %llu\n",
+            Name, GlobalSourceFiles.Files[File - 1], Line, Column, Type, External);
+}
+
 void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
 {
     char* Name = GetTagString(CUDie, DW_AT_name);
@@ -208,7 +239,7 @@ void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
 
     fprintf(stdout,
             "File: %s/%s\n"
-            "Macro Offset: 0x%0.8x\n",
+            "Macro Offset and Information: 0x%0.8x\n",
             Directory, Name, MacroOffset);
 }
 
@@ -225,7 +256,7 @@ void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index)
         exit(1);
     }
 
-    fprintf(stdout, "Macro DefUndef: %s\n", MacroString);
+    fprintf(stdout, "\tDefUndef: %s\n", MacroString);
 }
 
 void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
@@ -239,7 +270,7 @@ void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
         exit(1);
     }
 
-    fprintf(stdout, "Macro StartFile: %s\n", MacroString);
+    fprintf(stdout, "\tStartFile: %s\n", MacroString);
 }
 
 void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
@@ -325,6 +356,9 @@ void DwarfPrintFunctionInfo()
 
             switch (Tag) {
                 case DW_TAG_subprogram:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_variable:
                     TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
