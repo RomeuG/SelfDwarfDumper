@@ -212,10 +212,35 @@ void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
             Directory, Name, MacroOffset);
 }
 
-// void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext)
-// {
-// 	dwarf_get_macro_defundef(MacroContext, );
-// }
+void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index)
+{
+    Dwarf_Unsigned MLine = 0;
+    Dwarf_Unsigned MIndex = 0;
+    Dwarf_Unsigned MOffset = 0;
+    Dwarf_Half MFormsCount = 0;
+    const char* MacroString = 0;
+
+    int Result = dwarf_get_macro_defundef(MacroContext, Index, &MLine, &MIndex, &MOffset, &MFormsCount, &MacroString, 0);
+    if (Result != DW_DLV_OK) {
+        exit(1);
+    }
+
+    fprintf(stdout, "Macro DefUndef: %s\n", MacroString);
+}
+
+void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
+{
+    Dwarf_Unsigned MLine = 0;
+    Dwarf_Unsigned MIndex = 0;
+    const char* MacroString = 0;
+
+    int Result = dwarf_get_macro_startend_file(MacroContext, Index, &MLine, &MIndex, &MacroString, 0);
+    if (Result != DW_DLV_OK) {
+        exit(1);
+    }
+
+    fprintf(stdout, "Macro StartFile: %s\n", MacroString);
+}
 
 void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
 {
@@ -252,19 +277,12 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
             case DW_MACRO_define_strx:
             case DW_MACRO_undef_strx:
             case DW_MACRO_define_sup:
-            case DW_MACRO_undef_sup: {
-                Dwarf_Unsigned MLine = 0;
-                Dwarf_Unsigned MIndex = 0;
-                Dwarf_Unsigned MOffset = 0;
-                Dwarf_Half MFormsCount = 0;
-                const char* MacroString = 0;
-                // HandleMacroDefUndef(MacroContext);
-                Result = dwarf_get_macro_defundef(MacroContext, Index, &MLine, &MIndex, &MOffset, &MFormsCount, &MacroString, 0);
-                if (Result != DW_DLV_OK) {
-                    exit(1);
-                }
-                fprintf(stdout, "Macro String: %s\n", MacroString);
-            } break;
+            case DW_MACRO_undef_sup:
+                HandleMacroDefUndef(MacroContext, Index);
+                break;
+            case DW_MACRO_start_file:
+                HandleMacroStartFile(MacroContext, Index);
+                break;
         }
     }
 
