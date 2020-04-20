@@ -174,6 +174,12 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
     Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base);
     Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
 
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
     //                   DW_AT_decl_file             0x00000001 /home/romeu/Documents/Projects/untitled-debugger-project/src/main.cpp
@@ -187,7 +193,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
     //                   DW_AT_GNU_all_tail_call_sites yes(1)
     //                   DW_AT_sibling               <0x00001640>
 
-    fprintf(stdout, "DW_TAG_subprogram\n"
+    fprintf(stdout, "DW_TAG_subprogram - Children: %d\n"
                     "\tDW_AT_external: %d\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_decl_file: %s\n"
@@ -199,7 +205,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
                     "\tDW_AT_high_pc: %llu\n"
                     "\tDW_AT_frame_base: 0x%0.8x\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
-            External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
+            HasChildren, External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 }
 
 void HandleDwarfVariable(Dwarf_Die Die)
