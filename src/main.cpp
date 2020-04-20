@@ -244,14 +244,18 @@ void HandleDwarfVariable(Dwarf_Die Die)
 
 void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
 {
+    char* Producer = GetTagString(CUDie, DW_AT_producer);
+    // TODO: print out actual language name (4 -> CPP)
+    Dwarf_Unsigned Language = GetTagUnsignedData(CUDie, DW_AT_language);
     char* Name = GetTagString(CUDie, DW_AT_name);
     char* Directory = GetTagString(CUDie, DW_AT_comp_dir);
     Dwarf_Off MacroOffset = GetTagRef(CUDie, DW_AT_macros);
 
-    fprintf(stdout,
-            "File: %s/%s\n"
-            "Macro Offset and Information: 0x%0.8x\n",
-            Directory, Name, MacroOffset);
+    fprintf(stdout, "Producer: %s\n"
+                    "Language: %d\n"
+                    "File: %s/%s\n"
+                    "Macro Offset and Information: 0x%0.8x\n",
+            Producer, Language, Directory, Name, MacroOffset);
 }
 
 void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index)
