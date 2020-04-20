@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 #define TESTMACRO 0
+#define STR(a) #a
 
 struct SourceFiles {
     char** Files;
@@ -206,6 +207,10 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
                     "\tDW_AT_frame_base: 0x%0.8x\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
             HasChildren, External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
+
+    if (HasChildren) {
+        // TODO: deal with them
+    }
 }
 
 void HandleDwarfVariable(Dwarf_Die Die)
@@ -279,6 +284,19 @@ void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
     fprintf(stdout, "\tStartFile: %s\n", MacroString);
 }
 
+void HandleMacroImport(Dwarf_Macro_Context MacroContext, int Index, char* TagName)
+{
+    Dwarf_Unsigned MLine = 0;
+    Dwarf_Unsigned MOffset = 0;
+
+    int Result = dwarf_get_macro_import(MacroContext, Index, &MOffset, 0);
+    if (Result != DW_DLV_OK) {
+        exit(1);
+    }
+
+    fprintf(stdout, "\t%s offset: 0x%0.8x\n", TagName, MOffset);
+}
+
 void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
 {
     Dwarf_Unsigned Version = 0;
@@ -319,6 +337,9 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
                 break;
             case DW_MACRO_start_file:
                 HandleMacroStartFile(MacroContext, Index);
+                break;
+            case DW_MACRO_import:
+                HandleMacroImport(MacroContext, Index, STR(DW_MACRO_import));
                 break;
         }
     }
