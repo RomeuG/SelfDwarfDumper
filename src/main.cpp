@@ -258,7 +258,7 @@ void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
             Producer, Language, Directory, Name, MacroOffset);
 }
 
-void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index)
+void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index, char* TagName)
 {
     Dwarf_Unsigned MLine = 0;
     Dwarf_Unsigned MIndex = 0;
@@ -271,10 +271,10 @@ void HandleMacroDefUndef(Dwarf_Macro_Context MacroContext, int Index)
         exit(1);
     }
 
-    fprintf(stdout, "\tDefUndef: %s\n", MacroString);
+    fprintf(stdout, "\t%s line:%d %s\n", TagName, MLine, MacroString);
 }
 
-void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
+void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index, char* TagName)
 {
     Dwarf_Unsigned MLine = 0;
     Dwarf_Unsigned MIndex = 0;
@@ -285,7 +285,7 @@ void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, int Index)
         exit(1);
     }
 
-    fprintf(stdout, "\tStartFile: %s\n", MacroString);
+    fprintf(stdout, "\t%s line:%d %s\n", TagName, MLine, MacroString);
 }
 
 void HandleMacroImport(Dwarf_Macro_Context MacroContext, int Index, char* TagName)
@@ -298,7 +298,7 @@ void HandleMacroImport(Dwarf_Macro_Context MacroContext, int Index, char* TagNam
         exit(1);
     }
 
-    fprintf(stdout, "\t%s offset: 0x%0.8x\n", TagName, MOffset);
+    fprintf(stdout, "\t%s offset 0x%0.8x\n", TagName, MOffset);
 }
 
 void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
@@ -330,17 +330,31 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
             case 0:
                 break;
             case DW_MACRO_define:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_define));
+                break;
             case DW_MACRO_undef:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_undef));
+                break;
             case DW_MACRO_define_strp:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_define_strp));
+                break;
             case DW_MACRO_undef_strp:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_undef_strp));
+                break;
             case DW_MACRO_define_strx:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_define_strx));
+                break;
             case DW_MACRO_undef_strx:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_undef_strx));
+                break;
             case DW_MACRO_define_sup:
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_define_sup));
+                break;
             case DW_MACRO_undef_sup:
-                HandleMacroDefUndef(MacroContext, Index);
+                HandleMacroDefUndef(MacroContext, Index, STR(DW_MACRO_undef_sup));
                 break;
             case DW_MACRO_start_file:
-                HandleMacroStartFile(MacroContext, Index);
+                HandleMacroStartFile(MacroContext, Index, STR(DW_MACRO_start_file));
                 break;
             case DW_MACRO_import:
                 HandleMacroImport(MacroContext, Index, STR(DW_MACRO_import));
