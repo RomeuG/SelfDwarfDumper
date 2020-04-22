@@ -288,6 +288,20 @@ void HandleMacroStartFile(Dwarf_Macro_Context MacroContext, Dwarf_Half MacroOper
     fprintf(stdout, "\t[%d] 0x%0.2x %s line:%d file number: %d %s\n", Index, MacroOperator, TagName, MLine, MIndex, MacroString);
 }
 
+void HandleMacroEndFile(Dwarf_Macro_Context MacroContext, Dwarf_Half MacroOperator, int Index, const char* TagName)
+{
+    Dwarf_Unsigned MLine = 0;
+    Dwarf_Unsigned MIndex = 0;
+    const char* MacroString = 0;
+
+    int Result = dwarf_get_macro_startend_file(MacroContext, Index, &MLine, &MIndex, &MacroString, 0);
+    if (Result != DW_DLV_OK) {
+        exit(1);
+    }
+
+    fprintf(stdout, "\t[%d] 0x%0.2x %s\n", Index, MacroOperator, TagName);
+}
+
 void HandleMacroImport(Dwarf_Macro_Context MacroContext, Dwarf_Half MacroOperator, int Index, const char* TagName)
 {
     Dwarf_Unsigned MLine = 0;
@@ -345,6 +359,9 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
             case DW_MACRO_start_file:
                 HandleMacroStartFile(MacroContext, MacroOperator, Index, MacroName);
                 break;
+            case DW_MACRO_end_file:
+                HandleMacroEndFile(MacroContext, MacroOperator, Index, MacroName);
+                break;
             case DW_MACRO_import:
                 HandleMacroImport(MacroContext, MacroOperator, Index, MacroName);
                 break;
@@ -374,6 +391,7 @@ void DwarfPrintFunctionInfo()
         GetAllSourceFiles(CUDie);
         HandleDwarfCompilationUnit(CUDie);
         HandleDwarfCompilationUnitMacros(CUDie);
+        // HandleDwarfCompilationUnitMacrosByOffset(CUDie);
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
