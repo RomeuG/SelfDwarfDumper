@@ -10,6 +10,40 @@
 #define TESTMACRO 0
 #define STR(a) #a
 
+// custom array stuff
+struct Array {
+    Dwarf_Unsigned* array;
+    size_t size;
+    size_t used;
+};
+
+void ArrayInit(Array* a, size_t InitialSize)
+{
+    a->array = (Dwarf_Unsigned*)calloc(InitialSize, sizeof(Dwarf_Unsigned));
+    a->size = InitialSize;
+    a->used = 0;
+}
+
+void ArrayInsert(Array* a, Dwarf_Unsigned NewValue)
+{
+    if (a->used == a->size) {
+        a->size *= 2;
+        a->array = (Dwarf_Unsigned*)realloc(a->array, a->size * sizeof(Dwarf_Unsigned));
+    }
+
+    fprintf(stdout, "Inserting 0x%0.8x in position %d\n", NewValue, a->used);
+
+    a->array[a->used++] = NewValue;
+}
+
+void ArrayFree(Array* a)
+{
+    free(a->array);
+    a->array = 0;
+    a->used = 0;
+    a->size = 0;
+}
+
 struct SourceFiles {
     char** Files;
     Dwarf_Signed Count;
@@ -18,6 +52,8 @@ struct SourceFiles {
 static Dwarf_Debug GlobalDwarfDebug;
 static Dwarf_Error GlobalDwarfError;
 static struct SourceFiles GlobalSourceFiles;
+
+Array GlobalArray;
 
 void HandleDwarfSubprogram(Dwarf_Die Die);
 void HandleDwarfVariable(Dwarf_Die Die);
@@ -312,6 +348,8 @@ void HandleMacroImport(Dwarf_Macro_Context MacroContext, Dwarf_Half MacroOperato
         exit(1);
     }
 
+    ArrayInsert(&GlobalArray, MOffset);
+
     fprintf(stdout, "\t[%d] 0x%0.2x %s offset 0x%0.8x\n", Index, MacroOperator, TagName, MOffset);
 }
 
@@ -324,6 +362,61 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
     Dwarf_Unsigned MacroOpsDataLength = 0;
 
     int Result = dwarf_get_macro_context(CUDie, &Version, &MacroContext, &MacroUnitOffset, &MacroOpsCount, &MacroOpsDataLength, 0);
+    if (Result != DW_DLV_OK) {
+        fprintf(stderr, "dwarf_get_macro_context() error\n");
+        exit(1);
+    }
+
+    for (int Index = 0; Index < MacroOpsCount; Index++) {
+        Dwarf_Unsigned SectionOffset = 0;
+        Dwarf_Half MacroOperator = 0;
+        Dwarf_Half FormsCount = 0;
+        const Dwarf_Small* FormCodeArray = 0;
+        const char* MacroName = 0;
+
+        Result = dwarf_get_macro_op(MacroContext, Index, &SectionOffset, &MacroOperator, &FormsCount, &FormCodeArray, 0);
+        if (Result != DW_DLV_OK) {
+            continue;
+        }
+
+        dwarf_get_MACRO_name(MacroOperator, &MacroName);
+
+        switch (MacroOperator) {
+            case 0:
+                break;
+            case DW_MACRO_define:
+            case DW_MACRO_undef:
+            case DW_MACRO_define_strp:
+            case DW_MACRO_undef_strp:
+            case DW_MACRO_define_strx:
+            case DW_MACRO_undef_strx:
+            case DW_MACRO_define_sup:
+            case DW_MACRO_undef_sup:
+                HandleMacroDefUndef(MacroContext, MacroOperator, Index, MacroName);
+                break;
+            case DW_MACRO_start_file:
+                HandleMacroStartFile(MacroContext, MacroOperator, Index, MacroName);
+                break;
+            case DW_MACRO_end_file:
+                HandleMacroEndFile(MacroContext, MacroOperator, Index, MacroName);
+                break;
+            case DW_MACRO_import:
+                HandleMacroImport(MacroContext, MacroOperator, Index, MacroName);
+                break;
+        }
+    }
+
+    dwarf_dealloc_macro_context(MacroContext);
+}
+
+void HandleDwarfCompilationUnitMacrosByOffset(Dwarf_Die CUDie, Dwarf_Unsigned Offset)
+{
+    Dwarf_Unsigned Version = 0;
+    Dwarf_Macro_Context MacroContext = {};
+    Dwarf_Unsigned MacroOpsCount = 0;
+    Dwarf_Unsigned MacroOpsDataLength = 0;
+
+    int Result = dwarf_get_macro_context_by_offset(CUDie, Offset, &Version, &MacroContext, &MacroOpsCount, &MacroOpsDataLength, 0);
     if (Result != DW_DLV_OK) {
         fprintf(stderr, "dwarf_get_macro_context() error\n");
         exit(1);
@@ -391,7 +484,10 @@ void DwarfPrintFunctionInfo()
         GetAllSourceFiles(CUDie);
         HandleDwarfCompilationUnit(CUDie);
         HandleDwarfCompilationUnitMacros(CUDie);
-        // HandleDwarfCompilationUnitMacrosByOffset(CUDie);
+
+        for (int Index = 0; Index < GlobalArray.used; Index++) {
+            HandleDwarfCompilationUnitMacrosByOffset(CUDie, GlobalArray.array[Index]);
+        }
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
@@ -434,6 +530,8 @@ int main(int argc, char** argv)
     Dwarf_Ptr DwarfErrArg;
     Dwarf_Error DwarfError;
 
+    ArrayInit(&GlobalArray, 1);
+
     InitFunctionArray();
 
     FileDescriptor = open("a.out", O_RDONLY);
@@ -445,6 +543,8 @@ int main(int argc, char** argv)
     }
 
     DwarfPrintFunctionInfo();
+
+    ArrayFree(&GlobalArray);
 
     int DwarfFinishResult = dwarf_finish(GlobalDwarfDebug, &DwarfError);
     if (DwarfFinishResult != DW_DLV_OK) {
