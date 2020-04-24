@@ -31,8 +31,6 @@ void ArrayInsert(Array* a, Dwarf_Unsigned NewValue)
         a->array = (Dwarf_Unsigned*)realloc(a->array, a->size * sizeof(Dwarf_Unsigned));
     }
 
-    fprintf(stdout, "Inserting 0x%0.8x in position %d\n", NewValue, a->used);
-
     a->array[a->used++] = NewValue;
 }
 
@@ -367,6 +365,11 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
         exit(1);
     }
 
+    fprintf(stdout, "Macro data from CU-DIE at .debug_info offset 0x%0.8x:\n"
+                    "Macro Version: %d\n"
+                    "MacroInformationEntries count: %d, bytes length: %d\n",
+            MacroUnitOffset, Version, MacroOpsCount, MacroOpsDataLength);
+
     for (int Index = 0; Index < MacroOpsCount; Index++) {
         Dwarf_Unsigned SectionOffset = 0;
         Dwarf_Half MacroOperator = 0;
@@ -421,6 +424,11 @@ void HandleDwarfCompilationUnitMacrosByOffset(Dwarf_Die CUDie, Dwarf_Unsigned Of
         fprintf(stderr, "dwarf_get_macro_context() error\n");
         exit(1);
     }
+
+    fprintf(stdout, "Macro data from CU-DIE at .debug_info offset 0x%0.8x:\n"
+                    "Macro Version: %d\n"
+                    "MacroInformationEntries count: %d, bytes length: %d\n",
+            Offset, Version, MacroOpsCount, MacroOpsDataLength);
 
     for (int Index = 0; Index < MacroOpsCount; Index++) {
         Dwarf_Unsigned SectionOffset = 0;
