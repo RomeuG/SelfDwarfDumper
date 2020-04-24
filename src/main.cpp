@@ -53,6 +53,7 @@ static struct SourceFiles GlobalSourceFiles;
 
 Array GlobalArray;
 
+void HandleDwarfFormalParameter(Dwarf_Die Die);
 void HandleDwarfSubprogram(Dwarf_Die Die);
 void HandleDwarfVariable(Dwarf_Die Die);
 
@@ -72,6 +73,7 @@ void InitFunctionArray()
 {
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
+    TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
     TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
     TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
 }
@@ -214,6 +216,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_variable:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_formal_parameter:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -223,6 +228,28 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfFormalParameter(Dwarf_Die Die)
+{
+    char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Unsigned Location = GetTagExprLoc(Die, DW_AT_location);
+
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
+    // TODO: location actually shows more information than this
+    fprintf(stdout, "DW_TAG_formal_parameter\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_decl_file: %s\n"
+                    "\tDW_AT_decl_line: %d\n"
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_location: %llu\n",
+            Name, FileName, Line, Column, Type, Location);
 }
 
 void HandleDwarfSubprogram(Dwarf_Die Die)
