@@ -195,6 +195,36 @@ Dwarf_Unsigned GetTagExprLoc(Dwarf_Die Die, Dwarf_Half AttributeCode)
     return Length;
 }
 
+void DwarfGetChildInfo(Dwarf_Die ChildDie)
+{
+    int Result = 0;
+
+    do {
+        Dwarf_Half Tag;
+        Result = dwarf_tag(ChildDie, &Tag, &GlobalDwarfError);
+        if (Result != DW_DLV_OK) {
+            fprintf(stdout, "dwarf_tag() error: %s\n", dwarf_errmsg(GlobalDwarfError));
+            exit(1);
+        }
+
+        switch (Tag) {
+            case DW_TAG_subprogram:
+                TagFunctions[Tag](ChildDie);
+                break;
+            case DW_TAG_variable:
+                TagFunctions[Tag](ChildDie);
+                break;
+            // case DW_TAG_entry_point:
+            // case DW_TAG_inlined_subroutine:
+            default:
+                break;
+        }
+
+        // TODO: check for children here and print them out in a
+        // separate function to possibly use recursion
+    } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
 void HandleDwarfSubprogram(Dwarf_Die Die)
 {
     Dwarf_Bool External = GetTagFlag(Die, DW_AT_external);
@@ -244,6 +274,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
 
     if (HasChildren) {
         // TODO: deal with them
+        DwarfGetChildInfo(ChildDie);
     }
 }
 
