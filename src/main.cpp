@@ -178,10 +178,9 @@ Dwarf_Addr GetTagAddress(Dwarf_Die Die, Dwarf_Half AttributeCode)
     return Value;
 }
 
-Dwarf_Unsigned GetTagExprLoc(Dwarf_Die Die, Dwarf_Half AttributeCode)
+Dwarf_Unsigned GetTagExprLoc(Dwarf_Die Die, Dwarf_Half AttributeCode, Dwarf_Ptr Pointer)
 {
     Dwarf_Unsigned Length = 0;
-    Dwarf_Ptr Pointer = 0;
     Dwarf_Attribute Attribute = 0;
 
     int Result = dwarf_attr(Die, AttributeCode, &Attribute, 0);
@@ -237,7 +236,9 @@ void HandleDwarfFormalParameter(Dwarf_Die Die)
     Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
     Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
     Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
-    Dwarf_Unsigned Location = GetTagExprLoc(Die, DW_AT_location);
+    // TODO: make use of LocationPointer
+    Dwarf_Ptr LocationPointer = 0;
+    Dwarf_Unsigned Location = GetTagExprLoc(Die, DW_AT_location, LocationPointer);
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
 
@@ -263,7 +264,9 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
     Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
     Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
     Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
-    Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base);
+    // TODO: make use of framebasepointer
+    Dwarf_Ptr FrameBasePointer = 0;
+    Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base, FrameBasePointer);
     Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
 
     Dwarf_Bool HasChildren = 0;
@@ -300,7 +303,6 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
             HasChildren, External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 
     if (HasChildren) {
-        // TODO: deal with them
         DwarfGetChildInfo(ChildDie);
     }
 }
