@@ -54,6 +54,7 @@ static struct SourceFiles GlobalSourceFiles;
 Array GlobalArray;
 
 void HandleDwarfFormalParameter(Dwarf_Die Die);
+void HandleDwarfLexicalBlock(Dwarf_Die Die);
 void HandleDwarfSubprogram(Dwarf_Die Die);
 void HandleDwarfVariable(Dwarf_Die Die);
 
@@ -74,6 +75,7 @@ void InitFunctionArray()
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
     TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
+    TagFunctions[DW_TAG_lexical_block] = HandleDwarfLexicalBlock;
     TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
     TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
 }
@@ -218,6 +220,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_formal_parameter:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_lexical_block:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -227,6 +232,29 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfLexicalBlock(Dwarf_Die Die)
+{
+    Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
+    Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
+    fprintf(stdout, "DW_TAG_lexical_block\n"
+                    "\tDW_AT_low_pc: 0x%0.8x\n"
+                    "\tDW_AT_high_pc: %llu\n"
+                    "\tDW_AT_sibling: 0x%0.8x\n",
+            LowPC, HighPC, Sibling);
+
+    if (HasChildren) {
+        DwarfGetChildInfo(ChildDie);
+    }
 }
 
 void HandleDwarfFormalParameter(Dwarf_Die Die)
@@ -575,6 +603,12 @@ void DwarfPrintFunctionInfo()
                     TagFunctions[Tag](ChildDie);
                     break;
                 case DW_TAG_variable:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_formal_parameter:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_lexical_block:
                     TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
