@@ -54,6 +54,7 @@ static struct SourceFiles GlobalSourceFiles;
 Array GlobalArray;
 
 void HandleDwarfStructureType(Dwarf_Die Die);
+void HandleDwarfMember(Dwarf_Die Die);
 void HandleDwarfFormalParameter(Dwarf_Die Die);
 void HandleDwarfLexicalBlock(Dwarf_Die Die);
 void HandleDwarfSubprogram(Dwarf_Die Die);
@@ -77,6 +78,7 @@ void InitFunctionArray()
     // TagFunctions[0x1d] = HandleDwarfFunction;
     TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
     TagFunctions[DW_TAG_structure_type] = HandleDwarfStructureType;
+    TagFunctions[DW_TAG_member] = HandleDwarfMember;
     TagFunctions[DW_TAG_lexical_block] = HandleDwarfLexicalBlock;
     TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
     TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
@@ -228,6 +230,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_structure_type:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_member:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -268,6 +273,27 @@ void HandleDwarfStructureType(Dwarf_Die Die)
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
     }
+}
+
+void HandleDwarfMember(Dwarf_Die Die)
+{
+    char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Unsigned MemberLocation = GetTagUnsignedData(Die, DW_AT_data_member_location);
+
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
+    fprintf(stdout, "DW_TAG_member\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_decl_file: %s\n"
+                    "\tDW_AT_decl_line: %d\n"
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_data_member_location: %llu\n",
+            Name, FileName, Line, Column, Type, MemberLocation);
 }
 
 void HandleDwarfLexicalBlock(Dwarf_Die Die)
@@ -648,6 +674,9 @@ void DwarfPrintFunctionInfo()
                     TagFunctions[Tag](ChildDie);
                     break;
                 case DW_TAG_structure_type:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_member:
                     TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
