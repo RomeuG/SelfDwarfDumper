@@ -53,6 +53,10 @@ static struct SourceFiles GlobalSourceFiles;
 
 Array GlobalArray;
 
+void HandleDwarfArrayType(Dwarf_Die Die);
+void HandleDwarfSubrangeType(Dwarf_Die Die);
+void HandleDwarfPointerType(Dwarf_Die Die);
+void HandleDwarfSubroutineType(Dwarf_Die Die);
 void HandleDwarfStructureType(Dwarf_Die Die);
 void HandleDwarfMember(Dwarf_Die Die);
 void HandleDwarfFormalParameter(Dwarf_Die Die);
@@ -76,6 +80,10 @@ void InitFunctionArray()
 {
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
+    TagFunctions[DW_TAG_array_type] = HandleDwarfArrayType;
+    TagFunctions[DW_TAG_subrange_type] = HandleDwarfSubrangeType;
+    TagFunctions[DW_TAG_pointer_type] = HandleDwarfPointerType;
+    TagFunctions[DW_TAG_subroutine_type] = HandleDwarfSubroutineType;
     TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
     TagFunctions[DW_TAG_structure_type] = HandleDwarfStructureType;
     TagFunctions[DW_TAG_member] = HandleDwarfMember;
@@ -233,6 +241,18 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_member:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_array_type:
+                TagFunctions[Tag](ChildDie);
+                break;
+            case DW_TAG_subrange_type:
+                TagFunctions[Tag](ChildDie);
+                break;
+            case DW_TAG_pointer_type:
+                TagFunctions[Tag](ChildDie);
+                break;
+            case DW_TAG_subroutine_type:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -242,6 +262,68 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfArrayType(Dwarf_Die Die)
+{
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
+    fprintf(stdout, "DW_TAG_array_type\n"
+                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_sibling: %llu\n",
+            Type, Sibling);
+
+    if (HasChildren) {
+        DwarfGetChildInfo(ChildDie);
+    }
+}
+
+void HandleDwarfSubrangeType(Dwarf_Die Die)
+{
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Unsigned UpperBound = GetTagUnsignedData(Die, DW_AT_upper_bound);
+
+    fprintf(stdout, "DW_TAG_subrange_type\n"
+                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_upper_bound: %llu\n",
+            Type, UpperBound);
+}
+
+void HandleDwarfPointerType(Dwarf_Die Die)
+{
+    Dwarf_Unsigned Size = GetTagUnsignedData(Die, DW_AT_byte_size);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+
+    fprintf(stdout, "DW_TAG_pointer_type\n"
+                    "\tDW_AT_byte_size: %llu\n"
+                    "\tDW_AT_type: 0x%0.8x\n",
+            Size, Type);
+}
+
+void HandleDwarfSubroutineType(Dwarf_Die Die)
+{
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
+    fprintf(stdout, "DW_TAG_subroutine_type\n"
+                    "\tDW_AT_sibling: 0x%0.8x\n",
+            Sibling);
+
+    if (HasChildren) {
+        DwarfGetChildInfo(ChildDie);
+    }
 }
 
 void HandleDwarfStructureType(Dwarf_Die Die)
@@ -679,6 +761,19 @@ void DwarfPrintFunctionInfo()
                 case DW_TAG_member:
                     TagFunctions[Tag](ChildDie);
                     break;
+                case DW_TAG_array_type:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_subrange_type:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_pointer_type:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_subroutine_type:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+
                 // case DW_TAG_entry_point:
                 // case DW_TAG_inlined_subroutine:
                 default:
