@@ -53,6 +53,7 @@ static struct SourceFiles GlobalSourceFiles;
 
 Array GlobalArray;
 
+void HandleDwarfStructureType(Dwarf_Die Die);
 void HandleDwarfFormalParameter(Dwarf_Die Die);
 void HandleDwarfLexicalBlock(Dwarf_Die Die);
 void HandleDwarfSubprogram(Dwarf_Die Die);
@@ -75,6 +76,7 @@ void InitFunctionArray()
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
     TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
+    TagFunctions[DW_TAG_structure_type] = HandleDwarfStructureType;
     TagFunctions[DW_TAG_lexical_block] = HandleDwarfLexicalBlock;
     TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
     TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
@@ -223,6 +225,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_lexical_block:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_structure_type:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -232,6 +237,37 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfStructureType(Dwarf_Die Die)
+{
+    char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned Size = GetTagUnsignedData(Die, DW_AT_byte_size);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
+    fprintf(stdout, "DW_TAG_structure_type\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_byte_size: %llu\n"
+                    "\tDW_AT_decl_file: %s\n"
+                    "\tDW_AT_decl_line: %d\n"
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_sibling: %llu\n",
+            Name, Size, FileName, Line, Column, Sibling);
+
+    if (HasChildren) {
+        DwarfGetChildInfo(ChildDie);
+    }
 }
 
 void HandleDwarfLexicalBlock(Dwarf_Die Die)
@@ -609,6 +645,9 @@ void DwarfPrintFunctionInfo()
                     TagFunctions[Tag](ChildDie);
                     break;
                 case DW_TAG_lexical_block:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_structure_type:
                     TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
