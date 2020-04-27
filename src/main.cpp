@@ -53,6 +53,7 @@ static struct SourceFiles GlobalSourceFiles;
 
 Array GlobalArray;
 
+void HandleDwarfBaseType(Dwarf_Die Die);
 void HandleDwarfTypedef(Dwarf_Die Die);
 void HandleDwarfArrayType(Dwarf_Die Die);
 void HandleDwarfSubrangeType(Dwarf_Die Die);
@@ -81,6 +82,7 @@ void InitFunctionArray()
 {
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
+    TagFunctions[DW_TAG_base_type] = HandleDwarfBaseType;
     TagFunctions[DW_TAG_typedef] = HandleDwarfTypedef;
     TagFunctions[DW_TAG_array_type] = HandleDwarfArrayType;
     TagFunctions[DW_TAG_subrange_type] = HandleDwarfSubrangeType;
@@ -258,6 +260,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_typedef:
                 TagFunctions[Tag](ChildDie);
                 break;
+            case DW_TAG_base_type:
+                TagFunctions[Tag](ChildDie);
+                break;
             // case DW_TAG_entry_point:
             // case DW_TAG_inlined_subroutine:
             default:
@@ -267,6 +272,19 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfBaseType(Dwarf_Die Die)
+{
+    char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Unsigned Size = GetTagUnsignedData(Die, DW_AT_byte_size);
+
+    fprintf(stdout, "DW_TAG_base_type\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_byte_size: %llu\n",
+            Name, Type, Size);
 }
 
 void HandleDwarfTypedef(Dwarf_Die Die)
@@ -798,6 +816,9 @@ void DwarfPrintFunctionInfo()
                     TagFunctions[Tag](ChildDie);
                     break;
                 case DW_TAG_typedef:
+                    TagFunctions[Tag](ChildDie);
+                    break;
+                case DW_TAG_base_type:
                     TagFunctions[Tag](ChildDie);
                     break;
                 // case DW_TAG_entry_point:
