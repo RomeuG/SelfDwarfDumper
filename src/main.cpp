@@ -279,7 +279,7 @@ void HandleDwarfTypedef(Dwarf_Die Die)
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
 
-    fprintf(stdout, "DW_TAG_subrange_type\n"
+    fprintf(stdout, "DW_TAG_typedef\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
