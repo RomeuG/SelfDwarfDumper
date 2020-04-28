@@ -17,14 +17,14 @@ struct Array {
     size_t used;
 };
 
-void ArrayInit(Array* a, size_t InitialSize)
+void ArrayInit(struct Array* a, size_t InitialSize)
 {
     a->array = (Dwarf_Unsigned*)calloc(InitialSize, sizeof(Dwarf_Unsigned));
     a->size = InitialSize;
     a->used = 0;
 }
 
-void ArrayInsert(Array* a, Dwarf_Unsigned NewValue)
+void ArrayInsert(struct Array* a, Dwarf_Unsigned NewValue)
 {
     if (a->used == a->size) {
         a->size *= 2;
@@ -34,7 +34,7 @@ void ArrayInsert(Array* a, Dwarf_Unsigned NewValue)
     a->array[a->used++] = NewValue;
 }
 
-void ArrayFree(Array* a)
+void ArrayFree(struct Array* a)
 {
     free(a->array);
     a->array = 0;
@@ -51,7 +51,7 @@ static Dwarf_Debug GlobalDwarfDebug;
 static Dwarf_Error GlobalDwarfError;
 static struct SourceFiles GlobalSourceFiles;
 
-Array GlobalArray;
+struct Array GlobalArray;
 
 void HandleDwarfEnumerationType(Dwarf_Die Die);
 void HandleDwarfEnumerator(Dwarf_Die Die);
@@ -657,7 +657,7 @@ void HandleMacroImport(Dwarf_Macro_Context MacroContext, Dwarf_Half MacroOperato
 void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
 {
     Dwarf_Unsigned Version = 0;
-    Dwarf_Macro_Context MacroContext = {};
+    Dwarf_Macro_Context MacroContext = 0;
     Dwarf_Unsigned MacroUnitOffset = 0;
     Dwarf_Unsigned MacroOpsCount = 0;
     Dwarf_Unsigned MacroOpsDataLength = 0;
@@ -718,7 +718,7 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
 void HandleDwarfCompilationUnitMacrosByOffset(Dwarf_Die CUDie, Dwarf_Unsigned Offset)
 {
     Dwarf_Unsigned Version = 0;
-    Dwarf_Macro_Context MacroContext = {};
+    Dwarf_Macro_Context MacroContext = 0;
     Dwarf_Unsigned MacroOpsCount = 0;
     Dwarf_Unsigned MacroOpsDataLength = 0;
 
