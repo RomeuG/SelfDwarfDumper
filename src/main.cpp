@@ -53,6 +53,8 @@ static struct SourceFiles GlobalSourceFiles;
 
 Array GlobalArray;
 
+void HandleDwarfEnumerationType(Dwarf_Die Die);
+void HandleDwarfEnumerator(Dwarf_Die Die);
 void HandleDwarfBaseType(Dwarf_Die Die);
 void HandleDwarfTypedef(Dwarf_Die Die);
 void HandleDwarfArrayType(Dwarf_Die Die);
@@ -82,6 +84,8 @@ void InitFunctionArray()
 {
     // TagFunctions[0x03] = HandleDwarfFunction;
     // TagFunctions[0x1d] = HandleDwarfFunction;
+    TagFunctions[DW_TAG_enumeration_type] = HandleDwarfEnumerationType;
+    TagFunctions[DW_TAG_enumerator] = HandleDwarfEnumerator;
     TagFunctions[DW_TAG_base_type] = HandleDwarfBaseType;
     TagFunctions[DW_TAG_typedef] = HandleDwarfTypedef;
     TagFunctions[DW_TAG_array_type] = HandleDwarfArrayType;
@@ -227,39 +231,19 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
         }
 
         switch (Tag) {
+            case DW_TAG_enumeration_type:
+            case DW_TAG_enumerator:
             case DW_TAG_subprogram:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_variable:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_formal_parameter:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_lexical_block:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_structure_type:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_member:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_array_type:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_subrange_type:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_pointer_type:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_subroutine_type:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_typedef:
-                TagFunctions[Tag](ChildDie);
-                break;
             case DW_TAG_base_type:
                 TagFunctions[Tag](ChildDie);
                 break;
@@ -268,10 +252,55 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             default:
                 break;
         }
-
         // TODO: check for children here and print them out in a
         // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
+}
+
+void HandleDwarfEnumerationType(Dwarf_Die Die)
+{
+    const char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned Encoding = GetTagUnsignedData(Die, DW_AT_encoding);
+    Dwarf_Unsigned Size = GetTagUnsignedData(Die, DW_AT_byte_size);
+    Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
+    Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
+    Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
+    Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
+    Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
+
+    Dwarf_Bool HasChildren = 0;
+    Dwarf_Die ChildDie = 0;
+    if (dwarf_child(Die, &ChildDie, &GlobalDwarfError) == DW_DLV_OK) {
+        HasChildren = 1;
+    }
+
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
+    fprintf(stdout, "DW_TAG_enumeration_type - Children: %d\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_encoding: %llu\n"
+                    "\tDW_AT_byte_size: %llu\n"
+                    "\tDW_AT_decl_file: %s\n"
+                    "\tDW_AT_decl_line: %d\n"
+                    "\tDW_AT_decl_column: %llu\n"
+                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_sibling: 0x%0.8x\n",
+            HasChildren, Name, Encoding, Size, FileName, Line, Column, Type, Sibling);
+
+    if (HasChildren) {
+        DwarfGetChildInfo(ChildDie);
+    }
+}
+
+void HandleDwarfEnumerator(Dwarf_Die Die)
+{
+    const char* Name = GetTagString(Die, DW_AT_name);
+    Dwarf_Unsigned Value = GetTagUnsignedData(Die, DW_AT_const_value);
+
+    fprintf(stdout, "DW_TAG_enumerator\n"
+                    "\tDW_AT_name: %s\n"
+                    "\tDW_AT_const_value: %llu\n",
+            Name, Value);
 }
 
 void HandleDwarfBaseType(Dwarf_Die Die)
@@ -785,39 +814,19 @@ void DwarfPrintFunctionInfo()
             }
 
             switch (Tag) {
+                case DW_TAG_enumeration_type:
+                case DW_TAG_enumerator:
                 case DW_TAG_subprogram:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_variable:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_formal_parameter:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_lexical_block:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_structure_type:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_member:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_array_type:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_subrange_type:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_pointer_type:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_subroutine_type:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_typedef:
-                    TagFunctions[Tag](ChildDie);
-                    break;
                 case DW_TAG_base_type:
                     TagFunctions[Tag](ChildDie);
                     break;
