@@ -715,6 +715,41 @@ void HandleDwarfCompilationUnitMacros(Dwarf_Die CUDie)
     dwarf_dealloc_macro_context(MacroContext);
 }
 
+void HandleDwarfSourceLines(Dwarf_Die CUDie)
+{
+    const char* SectionName = 0;
+    int Result = 0;
+
+    Result = dwarf_get_line_section_name_from_die(CUDie, &SectionName, &GlobalDwarfError);
+}
+
+void HandleDwarfDebugStr()
+{
+    const char* SectionName = 0;
+
+    Dwarf_Off StringOffset = 0;
+    char* StringName = 0;
+    Dwarf_Signed StringLength = 0;
+
+    int Index = 0;
+    int Result = 0;
+
+    Result = dwarf_get_string_section_name(GlobalDwarfDebug, &SectionName, &GlobalDwarfError);
+    if (Result != DW_DLV_OK) {
+        exit(1);
+    }
+
+    fprintf(stdout, "String Section Name: %s\n", SectionName);
+
+    Result = dwarf_get_str(GlobalDwarfDebug, StringOffset, &StringName, &StringLength, &GlobalDwarfError);
+    for (Index = 0; Result == DW_DLV_OK; Index++) {
+        fprintf(stdout, "name at offset 0x%0.8x, length %llu is '%s'\n", StringOffset, StringLength, StringName);
+
+        StringOffset += StringLength + 1;
+        Result = dwarf_get_str(GlobalDwarfDebug, StringOffset, &StringName, &StringLength, &GlobalDwarfError);
+    }
+}
+
 void HandleDwarfCompilationUnitMacrosByOffset(Dwarf_Die CUDie, Dwarf_Unsigned Offset)
 {
     Dwarf_Unsigned Version = 0;
@@ -799,6 +834,8 @@ void DwarfPrintFunctionInfo()
         for (int Index = 0; Index < GlobalArray.used; Index++) {
             HandleDwarfCompilationUnitMacrosByOffset(CUDie, GlobalArray.array[Index]);
         }
+
+        HandleDwarfDebugStr();
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
