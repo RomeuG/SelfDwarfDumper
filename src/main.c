@@ -68,7 +68,22 @@ void HandleDwarfLexicalBlock(Dwarf_Die Die);
 void HandleDwarfSubprogram(Dwarf_Die Die);
 void HandleDwarfVariable(Dwarf_Die Die);
 
-void (*TagFunctions[75])(Dwarf_Die Die) = { 0 };
+void (*TagFunctions[75])(Dwarf_Die Die) = {
+    [DW_TAG_enumeration_type] = HandleDwarfEnumerationType,
+    [DW_TAG_enumerator] = HandleDwarfEnumerator,
+    [DW_TAG_base_type] = HandleDwarfBaseType,
+    [DW_TAG_typedef] = HandleDwarfTypedef,
+    [DW_TAG_array_type] = HandleDwarfArrayType,
+    [DW_TAG_subrange_type] = HandleDwarfSubrangeType,
+    [DW_TAG_pointer_type] = HandleDwarfPointerType,
+    [DW_TAG_subroutine_type] = HandleDwarfSubroutineType,
+    [DW_TAG_formal_parameter] = HandleDwarfFormalParameter,
+    [DW_TAG_structure_type] = HandleDwarfStructureType,
+    [DW_TAG_member] = HandleDwarfMember,
+    [DW_TAG_lexical_block] = HandleDwarfLexicalBlock,
+    [DW_TAG_subprogram] = HandleDwarfSubprogram,
+    [DW_TAG_variable] = HandleDwarfVariable,
+};
 
 void GetAllSourceFiles(Dwarf_Die Die)
 {
@@ -78,26 +93,6 @@ void GetAllSourceFiles(Dwarf_Die Die)
     for (int Index = 0; Index < GlobalSourceFiles.Count; Index++) {
         fprintf(stdout, "\t%s\n", GlobalSourceFiles.Files[Index]);
     }
-}
-
-void InitFunctionArray()
-{
-    // TagFunctions[0x03] = HandleDwarfFunction;
-    // TagFunctions[0x1d] = HandleDwarfFunction;
-    TagFunctions[DW_TAG_enumeration_type] = HandleDwarfEnumerationType;
-    TagFunctions[DW_TAG_enumerator] = HandleDwarfEnumerator;
-    TagFunctions[DW_TAG_base_type] = HandleDwarfBaseType;
-    TagFunctions[DW_TAG_typedef] = HandleDwarfTypedef;
-    TagFunctions[DW_TAG_array_type] = HandleDwarfArrayType;
-    TagFunctions[DW_TAG_subrange_type] = HandleDwarfSubrangeType;
-    TagFunctions[DW_TAG_pointer_type] = HandleDwarfPointerType;
-    TagFunctions[DW_TAG_subroutine_type] = HandleDwarfSubroutineType;
-    TagFunctions[DW_TAG_formal_parameter] = HandleDwarfFormalParameter;
-    TagFunctions[DW_TAG_structure_type] = HandleDwarfStructureType;
-    TagFunctions[DW_TAG_member] = HandleDwarfMember;
-    TagFunctions[DW_TAG_lexical_block] = HandleDwarfLexicalBlock;
-    TagFunctions[DW_TAG_subprogram] = HandleDwarfSubprogram;
-    TagFunctions[DW_TAG_variable] = HandleDwarfVariable;
 }
 
 char* GetTagString(Dwarf_Die Die, Dwarf_Half AttributeCode)
@@ -518,6 +513,8 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
         HasChildren = 1;
     }
 
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
     // DW_AT_external              yes(1)
     //                   DW_AT_name                  GetTagDirectoryName
     //                   DW_AT_decl_file             0x00000001 /home/romeu/Documents/Projects/untitled-debugger-project/src/main.cpp
@@ -543,7 +540,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
                     "\tDW_AT_high_pc: %llu\n"
                     "\tDW_AT_frame_base: 0x%0.8x\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
-            HasChildren, External, Name, GlobalSourceFiles.Files[File - 1], Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
+            HasChildren, External, Name, FileName, Line, Column, LinkageName, Type, LowPC, HighPC, FrameBase, Sibling);
 
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
@@ -552,16 +549,6 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
 
 void HandleDwarfVariable(Dwarf_Die Die)
 {
-    // DW_TAG_variable
-    //                   DW_AT_name                  TagFunctions
-    //                   DW_AT_decl_file             0x00000001 /home/romeu/Documents/Projects/untitled-debugger-project/src/main.cpp
-    //                   DW_AT_decl_line             0x00000017
-    //                   DW_AT_decl_column           0x00000008
-    //                   DW_AT_type                  <0x00000c86>
-    //                   DW_AT_external              yes(1)
-    //                   DW_AT_location              len 0x0009:
-    //                   034051000000000000: DW_OP_addr 0x00005140
-
     const char* Name = GetTagString(Die, DW_AT_name);
     Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
     Dwarf_Unsigned File = GetTagUnsignedData(Die, DW_AT_decl_file);
@@ -569,20 +556,25 @@ void HandleDwarfVariable(Dwarf_Die Die)
     Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
     Dwarf_Bool External = GetTagFlag(Die, DW_AT_external);
 
+    Dwarf_Ptr LocationPointer = 0;
+    Dwarf_Unsigned Location = GetTagExprLoc(Die, DW_AT_location, LocationPointer);
+
+    const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
+
     fprintf(stdout, "DW_TAG_variable\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
                     "\tDW_AT_external: %d\n"
-                    "\tDW_AT_type: <0x%0.8x>\n",
-            Name, GlobalSourceFiles.Files[File - 1], Line, Column, Type, External);
+                    "\tDW_AT_type: <0x%0.8x>\n"
+                    "\tDW_AT_location: %llu",
+            Name, FileName, Line, Column, Type, External, Location);
 }
 
 void HandleDwarfCompilationUnit(Dwarf_Die CUDie)
 {
     char* Producer = GetTagString(CUDie, DW_AT_producer);
-    // TODO: print out actual language name (4 -> CPP)
     Dwarf_Unsigned Language = GetTagUnsignedData(CUDie, DW_AT_language);
     char* Name = GetTagString(CUDie, DW_AT_name);
     char* Directory = GetTagString(CUDie, DW_AT_comp_dir);
@@ -867,14 +859,9 @@ void DwarfPrintFunctionInfo()
                 case DW_TAG_base_type:
                     TagFunctions[Tag](ChildDie);
                     break;
-                // case DW_TAG_entry_point:
-                // case DW_TAG_inlined_subroutine:
                 default:
                     break;
             }
-
-            // TODO: check for children here and print them out in a
-            // separate function to possibly use recursion
         } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
 
         CUResult = dwarf_next_cu_header_c(GlobalDwarfDebug, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -889,8 +876,6 @@ int main(int argc, char** argv)
     Dwarf_Error DwarfError;
 
     ArrayInit(&GlobalArray, 1);
-
-    InitFunctionArray();
 
     FileDescriptor = open("a.out", O_RDONLY);
 
