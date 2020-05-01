@@ -242,13 +242,9 @@ void DwarfGetChildInfo(Dwarf_Die ChildDie)
             case DW_TAG_base_type:
                 TagFunctions[Tag](ChildDie);
                 break;
-            // case DW_TAG_entry_point:
-            // case DW_TAG_inlined_subroutine:
             default:
                 break;
         }
-        // TODO: check for children here and print them out in a
-        // separate function to possibly use recursion
     } while (dwarf_siblingof(GlobalDwarfDebug, ChildDie, &ChildDie, 0) == 0);
 }
 
@@ -474,13 +470,11 @@ void HandleDwarfFormalParameter(Dwarf_Die Die)
     Dwarf_Unsigned Line = GetTagUnsignedData(Die, DW_AT_decl_line);
     Dwarf_Unsigned Column = GetTagUnsignedData(Die, DW_AT_decl_column);
     Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
-    // TODO: make use of LocationPointer
     Dwarf_Ptr LocationPointer = 0;
     Dwarf_Unsigned Location = GetTagExprLoc(Die, DW_AT_location, LocationPointer);
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
 
-    // TODO: location actually shows more information than this
     fprintf(stdout, "DW_TAG_formal_parameter\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_decl_file: %s\n"
@@ -502,7 +496,6 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
     Dwarf_Off Type = GetTagRef(Die, DW_AT_type);
     Dwarf_Addr LowPC = GetTagAddress(Die, DW_AT_low_pc);
     Dwarf_Unsigned HighPC = GetTagUnsignedData(Die, DW_AT_high_pc);
-    // TODO: make use of framebasepointer
     Dwarf_Ptr FrameBasePointer = 0;
     Dwarf_Unsigned FrameBase = GetTagExprLoc(Die, DW_AT_frame_base, FrameBasePointer);
     Dwarf_Off Sibling = GetTagRef(Die, DW_AT_sibling);
@@ -514,19 +507,6 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
     }
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
-
-    // DW_AT_external              yes(1)
-    //                   DW_AT_name                  GetTagDirectoryName
-    //                   DW_AT_decl_file             0x00000001 /home/romeu/Documents/Projects/untitled-debugger-project/src/main.cpp
-    //                   DW_AT_decl_line             0x00000018
-    //                   DW_AT_decl_column           0x0000000d
-    //                   DW_AT_linkage_name          _Z19GetTagDirectoryNameP9Dwarf_Die
-    //                   DW_AT_type                  <0x00000901>
-    //                   DW_AT_low_pc                0x0000127e
-    //                   DW_AT_high_pc               <offset-from-lowpc>106
-    //                   DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
-    //                   DW_AT_GNU_all_tail_call_sites yes(1)
-    //                   DW_AT_sibling               <0x00001640>
 
     fprintf(stdout, "DW_TAG_subprogram - Children: %d\n"
                     "\tDW_AT_external: %d\n"
@@ -568,7 +548,7 @@ void HandleDwarfVariable(Dwarf_Die Die)
                     "\tDW_AT_decl_column: %llu\n"
                     "\tDW_AT_external: %d\n"
                     "\tDW_AT_type: <0x%0.8x>\n"
-                    "\tDW_AT_location: %llu",
+                    "\tDW_AT_location: %llu\n",
             Name, FileName, Line, Column, Type, External, Location);
 }
 
@@ -877,7 +857,7 @@ int main(int argc, char** argv)
 
     ArrayInit(&GlobalArray, 1);
 
-    FileDescriptor = open("a.out", O_RDONLY);
+    FileDescriptor = open(argv[0], O_RDONLY);
 
     int DwarfInitResult = dwarf_init(FileDescriptor, DW_DLC_READ, DwarfHandler, DwarfErrArg, &GlobalDwarfDebug, &DwarfError);
     if (DwarfInitResult != DW_DLV_OK) {
