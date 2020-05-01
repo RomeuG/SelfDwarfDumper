@@ -337,10 +337,10 @@ void HandleDwarfArrayType(Dwarf_Die Die)
         HasChildren = 1;
     }
 
-    fprintf(stdout, "DW_TAG_array_type\n"
+    fprintf(stdout, "DW_TAG_array_type - Children: %d\n"
                     "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_sibling: %llu\n",
-            Type, Sibling);
+            HasChildren, Type, Sibling);
 
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
@@ -379,9 +379,9 @@ void HandleDwarfSubroutineType(Dwarf_Die Die)
         HasChildren = 1;
     }
 
-    fprintf(stdout, "DW_TAG_subroutine_type\n"
+    fprintf(stdout, "DW_TAG_subroutine_type - Children: %d\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
-            Sibling);
+            HasChildren, Sibling);
 
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
@@ -405,14 +405,14 @@ void HandleDwarfStructureType(Dwarf_Die Die)
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
 
-    fprintf(stdout, "DW_TAG_structure_type\n"
+    fprintf(stdout, "DW_TAG_structure_type - Childre: %d\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_byte_size: %llu\n"
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
                     "\tDW_AT_sibling: %llu\n",
-            Name, Size, FileName, Line, Column, Sibling);
+            HasChildren, Name, Size, FileName, Line, Column, Sibling);
 
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
@@ -452,11 +452,11 @@ void HandleDwarfLexicalBlock(Dwarf_Die Die)
         HasChildren = 1;
     }
 
-    fprintf(stdout, "DW_TAG_lexical_block\n"
+    fprintf(stdout, "DW_TAG_lexical_block - Children: %d\n"
                     "\tDW_AT_low_pc: 0x%0.8x\n"
                     "\tDW_AT_high_pc: %llu\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
-            LowPC, HighPC, Sibling);
+            HasChildren, LowPC, HighPC, Sibling);
 
     if (HasChildren) {
         DwarfGetChildInfo(ChildDie);
@@ -800,14 +800,24 @@ void DwarfPrintFunctionInfo()
         }
 
         GetAllSourceFiles(CUDie);
+        fprintf(stdout, "\n\n");
+
         HandleDwarfCompilationUnit(CUDie);
+        fprintf(stdout, "\n\n");
+
         HandleDwarfCompilationUnitMacros(CUDie);
+        fprintf(stdout, "\n");
 
         for (int Index = 0; Index < GlobalArray.used; Index++) {
             HandleDwarfCompilationUnitMacrosByOffset(CUDie, GlobalArray.array[Index]);
+            fprintf(stdout, "\n");
         }
 
+        fprintf(stdout, "\n");
+
         HandleDwarfDebugStr();
+
+        fprintf(stdout, "\n");
 
         if (dwarf_child(CUDie, &ChildDie, &GlobalDwarfError) != DW_DLV_OK) {
             fprintf(stdout, "dwarf_child() NOK: %s\n", dwarf_errmsg(GlobalDwarfError));
