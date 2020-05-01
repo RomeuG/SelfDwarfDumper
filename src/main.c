@@ -283,7 +283,7 @@ void HandleDwarfEnumerationType(Dwarf_Die Die)
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
-                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_sibling: 0x%0.8x\n",
             HasChildren, Name, Encoding, Size, FileName, Line, Column, Type, Sibling);
 
@@ -311,7 +311,7 @@ void HandleDwarfBaseType(Dwarf_Die Die)
 
     fprintf(stdout, "DW_TAG_base_type\n"
                     "\tDW_AT_name: %s\n"
-                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_byte_size: %llu\n",
             Name, Type, Size);
 }
@@ -331,7 +331,7 @@ void HandleDwarfTypedef(Dwarf_Die Die)
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
-                    "\tDW_AT_type: 0x%0.8x\n",
+                    "\tDW_AT_type: <0x%0.8x>\n",
             Name, FileName, Line, Column, Type);
 }
 
@@ -347,7 +347,7 @@ void HandleDwarfArrayType(Dwarf_Die Die)
     }
 
     fprintf(stdout, "DW_TAG_array_type\n"
-                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_sibling: %llu\n",
             Type, Sibling);
 
@@ -362,7 +362,7 @@ void HandleDwarfSubrangeType(Dwarf_Die Die)
     Dwarf_Unsigned UpperBound = GetTagUnsignedData(Die, DW_AT_upper_bound);
 
     fprintf(stdout, "DW_TAG_subrange_type\n"
-                    "\tDW_AT_type: 0x%0.8x\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_upper_bound: %llu\n",
             Type, UpperBound);
 }
@@ -374,7 +374,7 @@ void HandleDwarfPointerType(Dwarf_Die Die)
 
     fprintf(stdout, "DW_TAG_pointer_type\n"
                     "\tDW_AT_byte_size: %llu\n"
-                    "\tDW_AT_type: 0x%0.8x\n",
+                    "\tDW_AT_type: <0x%0.8x>\n",
             Size, Type);
 }
 
@@ -444,7 +444,7 @@ void HandleDwarfMember(Dwarf_Die Die)
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
-                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_data_member_location: %llu\n",
             Name, FileName, Line, Column, Type, MemberLocation);
 }
@@ -491,7 +491,7 @@ void HandleDwarfFormalParameter(Dwarf_Die Die)
                     "\tDW_AT_decl_file: %s\n"
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
-                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_location: %llu\n",
             Name, FileName, Line, Column, Type, Location);
 }
@@ -538,7 +538,7 @@ void HandleDwarfSubprogram(Dwarf_Die Die)
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
                     "\tDW_AT_linkage_name: %s\n"
-                    "\tDW_AT_type: %llu\n"
+                    "\tDW_AT_type: <0x%0.8x>\n"
                     "\tDW_AT_low_pc: 0x%0.8x\n"
                     "\tDW_AT_high_pc: %llu\n"
                     "\tDW_AT_frame_base: 0x%0.8x\n"
@@ -575,7 +575,7 @@ void HandleDwarfVariable(Dwarf_Die Die)
                     "\tDW_AT_decl_line: %d\n"
                     "\tDW_AT_decl_column: %llu\n"
                     "\tDW_AT_external: %d\n"
-                    "\tDW_AT_type: %llu\n",
+                    "\tDW_AT_type: <0x%0.8x>\n",
             Name, GlobalSourceFiles.Files[File - 1], Line, Column, Type, External);
 }
 
