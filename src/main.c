@@ -405,7 +405,7 @@ void HandleDwarfStructureType(Dwarf_Die Die)
 
     const char* FileName = File == 0 ? "(null)" : GlobalSourceFiles.Files[File - 1];
 
-    fprintf(stdout, "DW_TAG_structure_type - Childre: %d\n"
+    fprintf(stdout, "DW_TAG_structure_type - Children: %d\n"
                     "\tDW_AT_name: %s\n"
                     "\tDW_AT_byte_size: %llu\n"
                     "\tDW_AT_decl_file: %s\n"
